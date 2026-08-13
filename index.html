@@ -1,0 +1,1511 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>猫咪饮食与热量追踪 | Cat Diet Tracker</title>
+  
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+    :root {
+      --primary: #f59e0b;
+      --primary-hover: #d97706;
+      --primary-light: #fef3c7;
+      --primary-bg: #fffbeb;
+      --slate-800: #1e293b;
+      --slate-600: #475569;
+      --slate-500: #64748b;
+      --slate-400: #94a3b8;
+      --slate-100: #f1f5f9;
+      --emerald: #10b981;
+      --red: #ef4444;
+      --card-radius: 20px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    
+    body {
+      background-color: #f8fafc;
+      color: var(--slate-800);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding-bottom: 70px;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 440px;
+      background: #ffffff;
+      min-height: 100vh;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Glass Header */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(245, 158, 11, 0.15);
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .avatar-btn {
+      width: 46px;
+      height: 46px;
+      border-radius: 14px;
+      background: var(--primary-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      cursor: pointer;
+    }
+
+    .header-info { margin-left: 12px; flex: 1; }
+    .header-title { font-size: 16px; font-weight: 800; color: var(--slate-800); display: flex; align-items: center; gap: 6px; }
+    .header-sub { font-size: 12px; color: var(--slate-500); margin-top: 2px; }
+
+    .header-actions { display: flex; gap: 6px; }
+
+    .btn-action {
+      background: var(--slate-100);
+      color: var(--slate-600);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 6px 10px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-action:hover { background: var(--primary-light); color: var(--primary-hover); }
+
+    .cloud-badge {
+      font-size: 10px;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 6px;
+      background: #e0f2fe;
+      color: #0369a1;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .cloud-badge.offline { background: #f1f5f9; color: #64748b; }
+    .cloud-badge.error { background: #fee2e2; color: #b91c1c; }
+
+    /* Tabs */
+    .tab-bar {
+      display: flex;
+      background: var(--slate-100);
+      padding: 4px;
+      border-radius: 14px;
+      margin: 16px;
+      gap: 4px;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 8px 0;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--slate-500);
+      border: none;
+      background: transparent;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .tab-btn.active {
+      background: #ffffff;
+      color: var(--primary-hover);
+      font-weight: 800;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    }
+
+    .sub-tab-bar {
+      display: flex;
+      background: var(--slate-100);
+      padding: 3px;
+      border-radius: 10px;
+      gap: 2px;
+    }
+    .sub-tab-btn {
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--slate-500);
+      border: none;
+      background: transparent;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .sub-tab-btn.active {
+      background: var(--primary);
+      color: white;
+    }
+
+    /* Content Layout */
+    .main-content { padding: 0 16px 16px 16px; flex: 1; }
+
+    /* Cards */
+    .card-banner {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      border-radius: var(--card-radius);
+      padding: 20px;
+      color: white;
+      box-shadow: 0 8px 24px rgba(245, 158, 11, 0.25);
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .banner-title { font-size: 11px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; opacity: 0.9; }
+    .banner-value { font-size: 32px; font-weight: 900; margin-top: 4px; display: flex; align-items: baseline; gap: 6px; }
+    .banner-unit { font-size: 14px; font-weight: 700; opacity: 0.9; }
+    .banner-badge { position: absolute; top: 18px; right: 18px; background: rgba(255,255,255,0.25); backdrop-filter: blur(8px); padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; }
+
+    .progress-bar-bg { width: 100%; height: 10px; background: rgba(0,0,0,0.15); border-radius: 10px; overflow: hidden; margin-top: 8px; }
+    .progress-bar-fill { height: 100%; background: #ffffff; border-radius: 10px; transition: width 0.4s ease; }
+
+    .recommendation-box {
+      background: rgba(255, 255, 255, 0.18);
+      backdrop-filter: blur(6px);
+      border-radius: 14px;
+      padding: 10px 14px;
+      margin-top: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .card-box {
+      background: #ffffff;
+      border-radius: var(--card-radius);
+      padding: 18px;
+      border: 1px solid rgba(245, 158, 11, 0.12);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.03);
+      margin-bottom: 14px;
+    }
+
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .card-title { font-size: 14px; font-weight: 800; color: var(--slate-800); }
+
+    /* Button Grid */
+    .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+    .btn-primary-action {
+      background: var(--primary);
+      color: white;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 12px;
+      border-radius: 14px;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+      transition: transform 0.1s;
+    }
+    .btn-primary-action:active { transform: scale(0.97); }
+    .btn-secondary-action {
+      background: var(--slate-800);
+      color: white;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 12px;
+      border-radius: 14px;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(30, 41, 59, 0.15);
+      transition: transform 0.1s;
+    }
+
+    /* List Items */
+    .item-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      background: var(--primary-bg);
+      border-radius: 14px;
+      margin-bottom: 8px;
+      font-size: 12px;
+    }
+    .item-title { font-weight: 700; color: var(--slate-800); font-size: 13px; }
+    .item-sub { color: var(--slate-500); font-size: 11px; margin-top: 2px; }
+    .item-val { font-weight: 800; color: var(--primary-hover); font-size: 14px; text-align: right; }
+
+    .food-type-badge {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-weight: 700;
+      margin-left: 6px;
+    }
+    .badge-dry { background: #fef3c7; color: #b45309; }
+    .badge-wet { background: #e0f2fe; color: #0369a1; }
+    .badge-raw { background: #fee2e2; color: #b91c1c; }
+    .badge-treat { background: #f3e8ff; color: #7e22ce; }
+
+    .btn-delete {
+      background: transparent;
+      border: none;
+      color: #ef4444;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-left: 8px;
+    }
+
+    /* Modals */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+    .modal-overlay.active { opacity: 1; pointer-events: auto; }
+    .modal-card {
+      background: white;
+      width: 100%;
+      max-width: 380px;
+      border-radius: 24px;
+      padding: 22px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+    }
+    .modal-title { font-size: 16px; font-weight: 800; color: var(--slate-800); margin-bottom: 14px; }
+
+    .form-group { margin-bottom: 12px; }
+    .form-label { display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 700; color: var(--slate-600); margin-bottom: 4px; }
+    .form-input, .form-select {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--slate-100);
+      background: var(--slate-100);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--slate-800);
+      outline: none;
+    }
+    .form-input:focus, .form-select:focus { border-color: var(--primary); background: white; }
+
+    .recommend-badge {
+      background: #fef3c7;
+      color: #92400e;
+      padding: 10px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .modal-btns { display: flex; gap: 8px; margin-top: 18px; }
+    .btn-cancel { flex: 1; padding: 12px; border-radius: 12px; border: none; background: var(--slate-100); font-weight: 700; color: var(--slate-600); cursor: pointer; }
+    .btn-submit { flex: 1; padding: 12px; border-radius: 12px; border: none; background: var(--primary); font-weight: 700; color: white; cursor: pointer; }
+
+    .btn-mini {
+      background: #e2e8f0;
+      color: #334155;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+    }
+    .btn-mini:hover { background: var(--primary-light); color: var(--primary-hover); }
+
+    /* Bottom Nav Bar */
+    nav.bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 440px;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid rgba(0,0,0,0.06);
+      display: flex;
+      justify-around;
+      padding: 8px 0;
+      z-index: 40;
+    }
+    .nav-item { border: none; background: transparent; font-size: 10px; font-weight: 700; color: var(--slate-400); cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+    .nav-item.active { color: var(--primary-hover); }
+    .nav-icon { font-size: 18px; }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <!-- Top Header -->
+    <header>
+      <div style="display: flex; align-items: center;">
+        <div class="avatar-btn" onclick="openModal('modal-cat')">🐱</div>
+        <div class="header-info">
+          <div class="header-title">
+            <span id="cat-name">我的爱猫</span>
+            <span class="cloud-badge offline" id="cloud-status-badge">📱 本地存储</span>
+          </div>
+          <div class="header-sub">
+            最新体重: <strong style="color: var(--primary-hover);" id="header-weight">暂无记录</strong> • <span id="header-neutered">已绝育</span>
+          </div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="btn-action" onclick="openModal('modal-cloud')">☁️ 云同步</button>
+        <button class="btn-action" onclick="openModal('modal-cat')">修改档案</button>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('dashboard', this)">📊 概览</button>
+      <button class="tab-btn" onclick="switchTab('feeding', this)">🥣 投喂</button>
+      <button class="tab-btn" onclick="switchTab('weights', this)">⚖️ 体重</button>
+      <button class="tab-btn" onclick="switchTab('foods', this)">🥫 猫粮库</button>
+      <button class="tab-btn" onclick="switchTab('analytics', this)">📈 图表</button>
+    </div>
+
+    <!-- Main View Content -->
+    <div class="main-content">
+      
+      <!-- TAB 1: DASHBOARD -->
+      <div id="tab-dashboard">
+        <!-- DER Calorie Engine Banner -->
+        <div class="card-banner">
+          <div class="banner-badge" id="activity-label">绝育成猫 (1.2x)</div>
+          <div class="banner-title">每日能量需求目标 (DER)</div>
+          <div class="banner-value">
+            <span id="der-target-val">0.0</span>
+            <span class="banner-unit">kcal / 天</span>
+          </div>
+
+          <div style="margin-top: 14px;">
+            <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: 700;">
+              <span>今日已摄入: <strong id="today-intake-val">0</strong> kcal</span>
+              <span id="intake-percent">0%</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" id="intake-progress-bar" style="width: 0%;"></div>
+            </div>
+          </div>
+
+          <!-- Dynamic Recommended Feeding Hint -->
+          <div class="recommendation-box">
+            <span>💡 建议本次加粮量:</span>
+            <strong id="banner-recommend-grams" style="color: #ffffff; font-size: 13px;">请先选择猫粮</strong>
+          </div>
+
+          <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.2); display: flex; justify-content: space-between; align-items: center; font-size: 11px;">
+            <div>静息需求 RER: <strong id="rer-val">0.0 kcal</strong> <span style="opacity:0.8;">(70*W^0.75)</span></div>
+            <div style="background: rgba(16, 185, 129, 0.9); padding: 2px 8px; border-radius: 8px; font-weight: 700;" id="deficit-badge">缺口 0 kcal</div>
+          </div>
+        </div>
+
+        <!-- Quick Action Buttons -->
+        <div class="btn-grid">
+          <button class="btn-primary-action" onclick="openModal('modal-feeding')">🥣 记录今日投喂</button>
+          <button class="btn-secondary-action" onclick="openModal('modal-weight')">⚖️ 记录新体重</button>
+        </div>
+
+        <!-- Today Feeding List -->
+        <div class="card-box">
+          <div class="card-header">
+            <div class="card-title">今日投喂记录</div>
+            <div style="font-size: 11px; font-weight: 700; color: var(--primary-hover);" id="today-count">共 0 餐</div>
+          </div>
+          <div id="today-feeding-list">
+            <!-- Dynamic JS Injected -->
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: FEEDING -->
+      <div id="tab-feeding" style="display: none;">
+        <div class="card-header">
+          <div class="card-title">所有投喂历史</div>
+          <button class="btn-action" onclick="openModal('modal-feeding')">+ 添加投喂</button>
+        </div>
+        <div id="all-feeding-list">
+          <!-- Dynamic JS Injected -->
+        </div>
+      </div>
+
+      <!-- TAB 3: WEIGHTS -->
+      <div id="tab-weights" style="display: none;">
+        <div class="card-header">
+          <div class="card-title">体重追踪历史 (单位: 磅 lbs / 公斤 kg)</div>
+          <button class="btn-action" onclick="openModal('modal-weight')">+ 录入体重</button>
+        </div>
+        <div class="card-box" id="all-weight-list">
+          <!-- Dynamic JS Injected -->
+        </div>
+      </div>
+
+      <!-- TAB 4: FOODS -->
+      <div id="tab-foods" style="display: none;">
+        <div class="card-header">
+          <div class="card-title">猫粮/罐头单位热量库 (kcal/1000g)</div>
+          <button class="btn-action" onclick="openModal('modal-food')">+ 新增猫粮</button>
+        </div>
+        <div id="all-food-list">
+          <!-- Dynamic JS Injected -->
+        </div>
+      </div>
+
+      <!-- TAB 5: ANALYTICS (WEIGHT & CALORIE VS DER OVERLAY CHART) -->
+      <div id="tab-analytics" style="display: none;">
+        <!-- Card 1: Calorie Intake vs DER Target Overlay Chart -->
+        <div class="card-box">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <div class="card-title">🔥 摄入热量 VS DER 目标</div>
+            <div class="sub-tab-bar">
+              <button class="sub-tab-btn active" id="btn-gran-day" onclick="changeCalorieGranularity('day', this)">日</button>
+              <button class="sub-tab-btn" id="btn-gran-week" onclick="changeCalorieGranularity('week', this)">周</button>
+              <button class="sub-tab-btn" id="btn-gran-month" onclick="changeCalorieGranularity('month', this)">月</button>
+              <button class="sub-tab-btn" id="btn-gran-year" onclick="changeCalorieGranularity('year', this)">年</button>
+            </div>
+          </div>
+          <div style="height: 190px; width: 100%;" id="calorie-chart-container">
+            <!-- Dynamic SVG Injected -->
+          </div>
+          <div style="display: flex; justify-content: center; gap: 16px; margin-top: 8px; font-size: 10px; font-weight: 700;">
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <span style="display:inline-block; width:12px; height:8px; background:#f59e0b; border-radius:2px;"></span>
+              <span>实际摄入热量 (kcal)</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <span style="display:inline-block; width:14px; height:0px; border-top:2px dashed #ef4444;"></span>
+              <span style="color:#ef4444;">目标 DER 虚线 (kcal)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2: Weight Trend Chart -->
+        <div class="card-box">
+          <div class="card-title" style="margin-bottom: 14px;">⚖️ 体重变化趋势图表 (kg / lbs)</div>
+          <div style="height: 160px; width: 100%;" id="chart-container">
+            <div style="text-align:center; color:#94a3b8; font-size:12px; padding-top:50px;">请录入至少 2 条体重记录查看趋势</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" onclick="switchTab('dashboard', this)">
+        <span class="nav-icon">📊</span>概览
+      </button>
+      <button class="nav-item" onclick="switchTab('feeding', this)">
+        <span class="nav-icon">🥣</span>投喂
+      </button>
+      <button class="nav-item" onclick="switchTab('weights', this)">
+        <span class="nav-icon">⚖️</span>体重
+      </button>
+      <button class="nav-item" onclick="switchTab('analytics', this)">
+        <span class="nav-icon">📈</span>图表
+      </button>
+    </nav>
+  </div>
+
+  <!-- MODAL 0: CLOUD SYNC CONFIG (GOOGLE SHEETS WITH DIAGNOSTICS) -->
+  <div class="modal-overlay" id="modal-cloud">
+    <div class="modal-card">
+      <div class="modal-title">☁️ Google Sheet 云端同步设置</div>
+      <form onsubmit="handleSaveCloudConfig(event)">
+        <div class="form-group">
+          <label class="form-label"><span>Google Apps Script API 网址 (URL)</span></label>
+          <input type="url" placeholder="https://script.google.com/macros/s/AKfycb.../exec" id="inp-cloud-url" class="form-input" />
+        </div>
+        <div class="form-group">
+          <label class="form-label"><span>安全密钥 (Secret Key)</span></label>
+          <input type="text" placeholder="默认: MyCatDiet2026!" id="inp-cloud-key" class="form-input" />
+        </div>
+        
+        <div style="margin-bottom: 10px;">
+          <button type="button" class="btn-mini" style="width:100%; padding:8px; background:#e0f2fe; color:#0369a1;" onclick="testCloudConnection()">🔍 测试诊断云端连接</button>
+        </div>
+
+        <div id="cloud-diag-box" style="display:none; background:#f8fafc; padding:10px; border-radius:10px; font-size:11px; color:#475569; margin-bottom:12px; max-height:100px; overflow-y:auto; word-break:break-all;"></div>
+
+        <div class="modal-btns">
+          <button type="button" class="btn-cancel" onclick="closeModal('modal-cloud')">取消</button>
+          <button type="submit" class="btn-submit">连接云端并同步</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 1: WEIGHT -->
+  <div class="modal-overlay" id="modal-weight">
+    <div class="modal-card">
+      <div class="modal-title">⚖️ 记录猫咪新体重 (磅 / lbs)</div>
+      <form onsubmit="handleSaveWeight(event)">
+        <div class="form-group">
+          <label class="form-label"><span>猫咪体重 (磅 / lbs)</span></label>
+          <input type="number" step="0.01" required placeholder="例如: 9.92" id="inp-weight-lbs" class="form-input" oninput="convertLbsToKgHint()" />
+        </div>
+
+        <div style="background: var(--slate-100); padding: 8px 12px; border-radius: 10px; font-size: 11px; font-weight: 700; color: var(--slate-600); margin-bottom: 12px;">
+          系统自动换算: <strong id="lbs-to-kg-hint" style="color: var(--primary-hover); font-size: 13px;">0.00 kg</strong> (1 lb ≈ 0.4536 kg)
+        </div>
+
+        <div class="form-group">
+          <label class="form-label"><span>体态 BCS (1-9分)</span></label>
+          <select id="inp-weight-bcs" class="form-select">
+            <option value="3">3/9 - 偏瘦 (肋骨易触及)</option>
+            <option value="5" selected>5/9 - 理想体型 (腰身明显)</option>
+            <option value="7">7/9 - 超重 (脂肪蓄积)</option>
+            <option value="9">9/9 - 严重肥胖</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label"><span>记录日期</span></label>
+          <input type="date" id="inp-weight-date" class="form-input" />
+        </div>
+        <div class="modal-btns">
+          <button type="button" class="btn-cancel" onclick="closeModal('modal-weight')">取消</button>
+          <button type="submit" class="btn-submit">保存记录</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 2: FEEDING -->
+  <div class="modal-overlay" id="modal-feeding">
+    <div class="modal-card">
+      <div class="modal-title">🥣 记录饮食投喂</div>
+      <form onsubmit="handleSaveFeeding(event)">
+        
+        <div class="form-group">
+          <label class="form-label"><span>猫粮/罐头选择</span></label>
+          <select id="inp-feed-food" class="form-select" onchange="updateFeedingRecommendation()"></select>
+        </div>
+
+        <!-- Smart Recommendation Hint -->
+        <div class="recommend-badge" id="feeding-recommend-hint">
+          💡 依据前两日平均与热量缺口，建议本次加粮: 0 g
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">
+            <span>上一次投喂食物克数 (g)</span>
+            <span style="font-size:10px; color:#f59e0b; font-weight:700;">(自动取同步文档上餐投粮值)</span>
+          </label>
+          <input type="number" step="1" required placeholder="上餐投放的克数，如: 40" id="inp-feed-prev-fed" class="form-input" oninput="calculateEatenGrams()" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label"><span>本次投喂时上顿剩余克数 (g)</span></label>
+          <input type="number" step="1" value="0" placeholder="本次加粮前碗里剩的克数，填 0 即吃光" id="inp-feed-leftover-grams" class="form-input" oninput="calculateEatenGrams()" />
+        </div>
+
+        <!-- Highlighted Eaten Calculation -->
+        <div style="background: var(--slate-100); padding: 10px 14px; border-radius: 14px; font-size: 12px; font-weight: 700; color: var(--slate-600); margin-bottom: 12px; border: 1px stroke #cbd5e1;">
+          <div>实际吃掉克数 = <span style="color:#d97706;">上一次投喂克数</span> − <span style="color:#ef4444;">本次上顿剩余</span></div>
+          <div style="margin-top: 4px; font-size: 13px;">
+            计算实际吃掉: <strong id="computed-eaten-grams" style="color: var(--primary-hover); font-size: 15px;">0</strong> g
+            (<span id="computed-intake-kcal">0</span> kcal)
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label"><span>本次加粮/投喂食物克数 (g)</span></label>
+          <input type="number" step="1" required placeholder="本次新加入碗里的克数，如: 45" id="inp-feed-curr-fed" class="form-input" />
+        </div>
+
+        <!-- Feeding Time -->
+        <div class="form-group">
+          <label class="form-label">
+            <span>投喂时间 (支持自动记录或手动修改)</span>
+            <button type="button" class="btn-mini" onclick="resetFeedingTimeToNow()">⏰ 设为当前时间</button>
+          </label>
+          <input type="datetime-local" id="inp-feed-time" class="form-input" />
+        </div>
+
+        <div class="modal-btns">
+          <button type="button" class="btn-cancel" onclick="closeModal('modal-feeding')">取消</button>
+          <button type="submit" class="btn-submit">录入投喂数据</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 3: FOOD -->
+  <div class="modal-overlay" id="modal-food">
+    <div class="modal-card">
+      <div class="modal-title">🥫 新增猫粮数据</div>
+      <form onsubmit="handleSaveFood(event)">
+        <div class="form-group">
+          <label class="form-label"><span>猫粮/罐头名称</span></label>
+          <input type="text" required placeholder="例如: 渴望六种鱼" id="inp-food-name" class="form-input" />
+        </div>
+        <div class="form-group">
+          <label class="form-label"><span>品牌名称</span></label>
+          <input type="text" placeholder="例如: 渴望 (Orijen)" id="inp-food-brand" class="form-input" />
+        </div>
+        <div class="form-group">
+          <label class="form-label"><span>猫粮类型</span></label>
+          <select id="inp-food-type" class="form-select">
+            <option value="dry">🌾 主食干粮</option>
+            <option value="wet">🥫 主食湿粮/罐头</option>
+            <option value="raw">🥩 主食冻干/生骨肉</option>
+            <option value="treat">🍖 零食/加餐</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label"><span>单位热量 (kcal / 1000g)</span></label>
+          <input type="number" step="1" required placeholder="例如: 4120 (相当于 4120 kcal/kg)" id="inp-food-kcal" class="form-input" />
+        </div>
+        <div class="form-group">
+          <label class="form-label"><span>备注说明</span></label>
+          <input type="text" placeholder="例如: 2.27kg 包装 / 日常主粮" id="inp-food-notes" class="form-input" />
+        </div>
+        <div class="modal-btns">
+          <button type="button" class="btn-cancel" onclick="closeModal('modal-food')">取消</button>
+          <button type="submit" class="btn-submit">保存猫粮数据</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 4: CAT -->
+  <div class="modal-overlay" id="modal-cat">
+    <div class="modal-card">
+      <div class="modal-title">🐱 修改猫咪档案</div>
+      <form onsubmit="handleSaveCat(event)">
+        <div class="form-group">
+          <label class="form-label"><span>猫咪昵称</span></label>
+          <input type="text" id="inp-cat-name" class="form-input" placeholder="例如: 咪咪" />
+        </div>
+        <div class="form-group">
+          <label class="form-label"><span>活动度 / 能量系数目标 (DER)</span></label>
+          <select id="inp-cat-goal" class="form-select">
+            <option value="neutered_adult">绝育成猫 (1.2x) - 标准能量</option>
+            <option value="intact_adult">未绝育成猫 (1.4x)</option>
+            <option value="inactive_obese_prone">少动 / 易胖体质 (1.0x)</option>
+            <option value="weight_loss">健康减重 (0.8x) - 控制热量</option>
+            <option value="weight_gain">增重恢复 (1.3x)</option>
+            <option value="kitten_young">幼猫 <4个月 (2.5x)</option>
+            <option value="kitten_older">幼猫 4-12个月 (2.0x)</option>
+            <option value="senior">高龄猫 7岁+ (1.1x)</option>
+          </select>
+        </div>
+        <div class="modal-btns">
+          <button type="button" class="btn-cancel" onclick="closeModal('modal-cat')">取消</button>
+          <button type="submit" class="btn-submit">完成保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // --- Application State ---
+    const FACTOR_MAP = {
+      neutered_adult: { label: "绝育成猫 (1.2x)", factor: 1.2 },
+      intact_adult: { label: "未绝育成猫 (1.4x)", factor: 1.4 },
+      inactive_obese_prone: { label: "少动/易胖 (1.0x)", factor: 1.0 },
+      weight_loss: { label: "健康减重 (0.8x)", factor: 0.8 },
+      weight_gain: { label: "增重恢复 (1.3x)", factor: 1.3 },
+      kitten_young: { label: "幼猫 <4个月 (2.5x)", factor: 2.5 },
+      kitten_older: { label: "幼猫 4-12个月 (2.0x)", factor: 2.0 },
+      senior: { label: "高龄猫 7岁+ (1.1x)", factor: 1.1 }
+    };
+
+    const FOOD_TYPE_MAP = {
+      dry: { label: "主食干粮", class: "badge-dry" },
+      wet: { label: "湿粮/罐头", class: "badge-wet" },
+      raw: { label: "冻干/生骨肉", class: "badge-raw" },
+      treat: { label: "零食/加餐", class: "badge-treat" }
+    };
+
+    let state = {
+      cat: JSON.parse(localStorage.getItem('cat_profile_v6')) || {
+        name: "我的爱猫", is_neutered: true, activity_goal: "neutered_adult", avatar_emoji: "🐱"
+      },
+      weights: JSON.parse(localStorage.getItem('cat_weights_v6')) || [],
+      foods: JSON.parse(localStorage.getItem('cat_foods_v6')) || [],
+      feedings: JSON.parse(localStorage.getItem('cat_feedings_v6')) || [],
+      calorieGranularity: 'day',
+      cloudUrl: localStorage.getItem('cat_cloud_url') || '',
+      cloudKey: localStorage.getItem('cat_cloud_key') || 'MyCatDiet2026!'
+    };
+
+    // Helper: Normalize any Date or ISO string into YYYY-MM-DD local format
+    function normalizeDateStr(dateStr) {
+      if (!dateStr) return '';
+      const s = String(dateStr).trim();
+      if (s.length >= 10 && s.substring(0, 10).match(/^\d{4}-\d{2}-\d{2}$/)) {
+        return s.substring(0, 10);
+      }
+      const d = new Date(s);
+      if (!isNaN(d.getTime())) {
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      }
+      return s;
+    }
+
+    function formatTimeDisplay(timeStr) {
+      if (!timeStr) return '';
+      const s = String(timeStr).trim();
+      const d = new Date(s);
+      if (!isNaN(d.getTime())) {
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const hours = String(d.getHours()).padStart(2, '0');
+        const mins = String(d.getMinutes()).padStart(2, '0');
+        return `${year}-${month}-${day} ${hours}:${mins}`;
+      }
+      return s.replace('T', ' ').slice(0, 16);
+    }
+
+    function getTodayStr() {
+      const d = new Date();
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    function getNowLocalIsoStr() {
+      const now = new Date();
+      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+      return now.toISOString().slice(0, 16);
+    }
+
+    function resetFeedingTimeToNow() {
+      document.getElementById('inp-feed-time').value = getNowLocalIsoStr();
+    }
+
+    function sortFeedingsNewestFirst() {
+      state.feedings.sort((a,b) => {
+        const tA = new Date(a.time_str || a.date).getTime() || a.id;
+        const tB = new Date(b.time_str || b.date).getTime() || b.id;
+        return tB - tA;
+      });
+    }
+
+    function saveState() {
+      sortFeedingsNewestFirst();
+      localStorage.setItem('cat_profile_v6', JSON.stringify(state.cat));
+      localStorage.setItem('cat_weights_v6', JSON.stringify(state.weights));
+      localStorage.setItem('cat_foods_v6', JSON.stringify(state.foods));
+      localStorage.setItem('cat_feedings_v6', JSON.stringify(state.feedings));
+      renderApp();
+    }
+
+    // --- Google Sheets Cloud Sync Engine ---
+    async function syncFromCloud() {
+      const badge = document.getElementById('cloud-status-badge');
+      if (!state.cloudUrl) {
+        badge.className = 'cloud-badge offline';
+        badge.innerText = '📱 本地存储';
+        return;
+      }
+
+      badge.className = 'cloud-badge';
+      badge.innerText = '⏳ 同步中...';
+
+      try {
+        const fetchUrl = `${state.cloudUrl}?key=${encodeURIComponent(state.cloudKey)}`;
+        const res = await fetch(fetchUrl, { redirect: 'follow' });
+        const text = await res.text();
+        
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch(e) {
+          console.error("Cloud response text:", text);
+          badge.className = 'cloud-badge error';
+          badge.innerText = '⚠️ 需一键授权';
+          return;
+        }
+        
+        if (data.error) {
+          badge.className = 'cloud-badge error';
+          badge.innerText = '⚠️ 密钥错误';
+          return;
+        }
+
+        if (data.feedings) {
+          state.feedings = data.feedings.map(f => ({
+            id: Number(f.ID),
+            food_id: Number(f.FoodID),
+            date: normalizeDateStr(f.Date),
+            time_str: formatTimeDisplay(f.TimeStr || f.Date),
+            prev_fed_grams: Number(f.PrevFedGrams),
+            leftover_grams: Number(f.LeftoverGrams),
+            eaten_grams: Number(f.EatenGrams),
+            curr_fed_grams: Number(f.CurrFedGrams),
+            calories_intake: Number(f.Kcal)
+          }));
+        }
+
+        if (data.weights) {
+          state.weights = data.weights.map(w => ({
+            id: Number(w.ID),
+            weight_lbs: Number(w.WeightLbs),
+            weight_kg: Number(w.WeightKg),
+            bcs_score: Number(w.BCS),
+            logged_at: normalizeDateStr(w.Date)
+          }));
+        }
+
+        if (data.foods) {
+          state.foods = data.foods.map(fd => ({
+            id: Number(fd.ID),
+            name: String(fd.Name),
+            brand: String(fd.Brand),
+            food_type: String(fd.Type),
+            calories_per_kg: Number(fd.KcalPerKg),
+            notes: String(fd.Notes || '')
+          }));
+        }
+
+        if (data.cat && data.cat.length > 0) {
+          state.cat.name = data.cat[0].Name || state.cat.name;
+          state.cat.activity_goal = data.cat[0].ActivityGoal || state.cat.activity_goal;
+        }
+
+        saveState();
+        badge.className = 'cloud-badge';
+        badge.innerText = '☁️ 已云端同步';
+      } catch (err) {
+        console.warn('Cloud sync offline fallback:', err);
+        badge.className = 'cloud-badge offline';
+        badge.innerText = '📱 离线模式';
+      }
+    }
+
+    async function testCloudConnection() {
+      const diagBox = document.getElementById('cloud-diag-box');
+      diagBox.style.display = 'block';
+      diagBox.innerText = '正在诊断连接 Google Apps Script...';
+
+      const url = document.getElementById('inp-cloud-url').value.trim();
+      const key = document.getElementById('inp-cloud-key').value.trim() || 'MyCatDiet2026!';
+
+      if (!url) {
+        diagBox.innerText = '❌ 请先粘贴 Google Apps Script Web App URL！';
+        return;
+      }
+
+      try {
+        const fetchUrl = `${url}?key=${encodeURIComponent(key)}`;
+        const res = await fetch(fetchUrl, { redirect: 'follow' });
+        const text = await res.text();
+
+        try {
+          const json = JSON.parse(text);
+          if (json.error) {
+            diagBox.innerHTML = `❌ <strong>密钥校验失败:</strong> ${json.error}`;
+          } else {
+            diagBox.innerHTML = `✅ <strong>云端连接正常！</strong><br>已读取到表格数据: ${json.feedings ? json.feedings.length : 0} 条投喂记录。`;
+          }
+        } catch(e) {
+          diagBox.innerHTML = `⚠️ <strong>尚未完成谷歌授权！</strong><br>服务器返回了非 JSON 结果。请在 Google Sheet 扩展程序 -> Apps Script 中点击【部署】进行一次“授权访问 (Review Permissions)”。`;
+        }
+      } catch (err) {
+        diagBox.innerHTML = `❌ <strong>连接网络失败:</strong> ${err.toString()}`;
+      }
+    }
+
+    async function pushToCloud(actionPayload) {
+      if (!state.cloudUrl) return;
+      try {
+        actionPayload.key = state.cloudKey;
+        await fetch(state.cloudUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(actionPayload)
+        });
+      } catch (err) {
+        console.warn('Push to cloud error:', err);
+      }
+    }
+
+    // --- Energy & Recommendation Engine ---
+    function computeEnergy() {
+      const sortedW = [...state.weights].sort((a,b) => new Date(b.logged_at) - new Date(a.logged_at));
+      const latestWeightKg = sortedW[0] ? sortedW[0].weight_kg : 0.0;
+      const latestWeightLbs = sortedW[0] ? sortedW[0].weight_lbs : 0.0;
+      
+      if (latestWeightKg === 0.0) {
+        return { latestWeightKg: 0, latestWeightLbs: 0, rer: 0, der: 0, factorLabel: FACTOR_MAP[state.cat.activity_goal].label, todayKcal: 0, gap: 0, avgIntake: 0 };
+      }
+
+      // RER = 70 * (W_kg)^0.75
+      const rer = Math.round(70.0 * Math.pow(latestWeightKg, 0.75) * 10) / 10;
+      const factorObj = FACTOR_MAP[state.cat.activity_goal] || FACTOR_MAP.neutered_adult;
+      const der = Math.round(rer * factorObj.factor * 10) / 10;
+
+      const todayStr = getTodayStr();
+      const yesterdayObj = new Date();
+      yesterdayObj.setDate(yesterdayObj.getDate() - 1);
+      const year = yesterdayObj.getFullYear();
+      const month = String(yesterdayObj.getMonth() + 1).padStart(2, '0');
+      const day = String(yesterdayObj.getDate()).padStart(2, '0');
+      const yesterdayStr = `${year}-${month}-${day}`;
+
+      const todayFeedings = state.feedings.filter(f => normalizeDateStr(f.date) === todayStr);
+      const yesterdayFeedings = state.feedings.filter(f => normalizeDateStr(f.date) === yesterdayStr);
+
+      const todayKcal = Math.round(todayFeedings.reduce((sum, f) => sum + f.calories_intake, 0) * 10) / 10;
+      const yesterdayKcal = Math.round(yesterdayFeedings.reduce((sum, f) => sum + f.calories_intake, 0) * 10) / 10;
+
+      const avgIntake = yesterdayKcal > 0 ? Math.round(((todayKcal + yesterdayKcal) / 2) * 10) / 10 : todayKcal;
+      const gap = Math.round((todayKcal - der) * 10) / 10;
+
+      return { latestWeightKg, latestWeightLbs, rer, der, factorLabel: factorObj.label, todayKcal, gap, avgIntake };
+    }
+
+    function getRecommendedFeedingGrams(foodId) {
+      const e = computeEnergy();
+      if (e.der === 0) return 0;
+      
+      const food = state.foods.find(f => f.id === parseInt(foodId));
+      if (!food || !food.calories_per_kg || food.calories_per_kg === 0) return 0;
+
+      // Current Intake subtracted from DER
+      const remainingKcal = Math.max(0, e.der - e.todayKcal);
+      if (remainingKcal === 0) return 0;
+
+      const recommendedGrams = Math.round((remainingKcal / food.calories_per_kg) * 1000);
+      return recommendedGrams;
+    }
+
+    // --- UI Renderers ---
+    function renderApp() {
+      const e = computeEnergy();
+      sortFeedingsNewestFirst();
+      
+      // Header
+      document.getElementById('cat-name').innerText = state.cat.name;
+      document.getElementById('header-weight').innerText = e.latestWeightKg > 0 ? `${e.latestWeightLbs} lbs (${e.latestWeightKg} kg)` : '暂无记录';
+      document.getElementById('header-neutered').innerText = state.cat.is_neutered ? '已绝育' : '未绝育';
+
+      // Banner
+      document.getElementById('activity-label').innerText = e.factorLabel;
+      document.getElementById('der-target-val').innerText = e.der;
+      document.getElementById('today-intake-val').innerText = e.todayKcal;
+      document.getElementById('rer-val').innerText = e.rer + ' kcal';
+
+      const pct = e.der > 0 ? Math.min(100, Math.round((e.todayKcal / e.der) * 100)) : 0;
+      document.getElementById('intake-percent').innerText = pct + '%';
+      document.getElementById('intake-progress-bar').style.width = pct + '%';
+
+      const badge = document.getElementById('deficit-badge');
+      if (e.gap > 0) {
+        badge.style.background = 'rgba(239, 68, 68, 0.9)';
+        badge.innerText = `超额 +${e.gap} kcal`;
+      } else {
+        badge.style.background = 'rgba(16, 185, 129, 0.9)';
+        badge.innerText = `缺口 ${Math.abs(e.gap)} kcal`;
+      }
+
+      // Recommend grams in banner
+      if (state.foods.length > 0) {
+        const recGrams = getRecommendedFeedingGrams(state.foods[0].id);
+        document.getElementById('banner-recommend-grams').innerText = recGrams > 0 ? `约 ${recGrams} g (${state.foods[0].name})` : '今日已达标';
+      } else {
+        document.getElementById('banner-recommend-grams').innerText = '请先添加猫粮数据';
+      }
+
+      // Today Feeding List (WITH 本次加粮/投喂食物克数)
+      const todayStr = getTodayStr();
+      const todayFeedings = state.feedings.filter(f => normalizeDateStr(f.date) === todayStr);
+      document.getElementById('today-count').innerText = `共 ${todayFeedings.length} 餐`;
+      const todayListEl = document.getElementById('today-feeding-list');
+      if (todayFeedings.length === 0) {
+        todayListEl.innerHTML = `<div style="text-align:center; color:#94a3b8; font-size:12px; padding:12px;">今日暂无投喂，点击“记录今日投喂”开始</div>`;
+      } else {
+        todayListEl.innerHTML = todayFeedings.map(f => {
+          const food = state.foods.find(item => item.id === f.food_id);
+          const timeDisp = formatTimeDisplay(f.time_str || f.date);
+          return `
+            <div class="item-row">
+              <div>
+                <div class="item-title">${food ? food.name : '猫粮'} <span style="font-size:10px; color:#64748b; margin-left:4px;">⏱️ ${timeDisp}</span></div>
+                <div class="item-sub">
+                  本次加粮/投喂: <strong style="color:var(--primary-hover);">${f.curr_fed_grams}g</strong> • 
+                  实际吃掉: <strong>${f.eaten_grams}g</strong> (上餐投 ${f.prev_fed_grams}g - 本次剩 ${f.leftover_grams || 0}g)
+                </div>
+              </div>
+              <div style="display:flex; align-items:center;">
+                <div class="item-val">${f.calories_intake} kcal</div>
+                <button class="btn-delete" onclick="deleteFeeding(${f.id})">✕</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // All Feedings (WITH 本次加粮/投喂食物克数)
+      document.getElementById('all-feeding-list').innerHTML = state.feedings.length === 0 ? `<div style="text-align:center; color:#94a3b8; font-size:12px; padding:20px;">暂无投喂历史</div>` : state.feedings.map(f => {
+        const food = state.foods.find(item => item.id === f.food_id);
+        const timeDisp = formatTimeDisplay(f.time_str || f.date);
+        return `
+          <div class="item-row">
+            <div>
+              <div class="item-title">${food ? food.name : '猫粮'} <span style="font-size:10px; color:#64748b; margin-left:4px;">⏱️ ${timeDisp}</span></div>
+              <div class="item-sub">
+                本次加粮/投喂: <strong style="color:var(--primary-hover);">${f.curr_fed_grams}g</strong> • 
+                实际吃掉: <strong>${f.eaten_grams}g</strong> (上餐投 ${f.prev_fed_grams}g - 剩 ${f.leftover_grams || 0}g)
+              </div>
+            </div>
+            <div style="display:flex; align-items:center;">
+              <div class="item-val">${f.calories_intake} kcal</div>
+              <button class="btn-delete" onclick="deleteFeeding(${f.id})">✕</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // All Weights (lbs & kg)
+      const sortedW = [...state.weights].sort((a,b) => new Date(b.logged_at) - new Date(a.logged_at));
+      document.getElementById('all-weight-list').innerHTML = sortedW.length === 0 ? `<div style="text-align:center; color:#94a3b8; font-size:12px; padding:12px;">暂无体重记录</div>` : sortedW.map(w => `
+        <div class="item-row" style="background:transparent; border-bottom:1px solid #f1f5f9; padding:8px 0;">
+          <div>
+            <div class="item-title">${w.weight_lbs} lbs <span style="color:#64748b; font-size:11px; font-weight:600;">(${w.weight_kg} kg)</span></div>
+            <div class="item-sub">${w.logged_at} • BCS 体态: ${w.bcs_score}/9</div>
+          </div>
+          <button class="btn-delete" onclick="deleteWeight(${w.id})">删除</button>
+        </div>
+      `).join('');
+
+      // All Foods
+      document.getElementById('all-food-list').innerHTML = state.foods.length === 0 ? `<div style="text-align:center; color:#94a3b8; font-size:12px; padding:20px;">暂无猫粮库数据，请点击“+ 新增猫粮”</div>` : state.foods.map(f => {
+        const typeObj = FOOD_TYPE_MAP[f.food_type] || FOOD_TYPE_MAP.dry;
+        return `
+          <div class="item-row">
+            <div>
+              <div class="item-title">
+                ${f.name}
+                <span class="food-type-badge ${typeObj.class}">${typeObj.label}</span>
+              </div>
+              <div class="item-sub">品牌: ${f.brand || '自选牌子'} ${f.notes ? '• ' + f.notes : ''}</div>
+            </div>
+            <div style="display:flex; align-items:center;">
+              <div class="item-val">${f.calories_per_kg} <span style="font-size:10px; color:#94a3b8;">kcal/1000g</span></div>
+              <button class="btn-delete" onclick="deleteFood(${f.id})">✕</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Select Dropdown for Feeding Modal
+      const foodSelect = document.getElementById('inp-feed-food');
+      if (state.foods.length === 0) {
+        foodSelect.innerHTML = `<option value="">请先在【猫粮库】添加猫粮</option>`;
+      } else {
+        foodSelect.innerHTML = state.foods.map(f => `<option value="${f.id}">${f.name} (${f.calories_per_kg} kcal/1000g)</option>`).join('');
+      }
+
+      // SVG Charts
+      renderWeightChart();
+      renderCalorieVsDerChart();
+    }
+
+    function convertLbsToKgHint() {
+      const lbs = parseFloat(document.getElementById('inp-weight-lbs').value) || 0;
+      const kg = Math.round(lbs * 0.45359237 * 100) / 100;
+      document.getElementById('lbs-to-kg-hint').innerText = kg + ' kg';
+    }
+
+    function updateFeedingRecommendation() {
+      const foodId = document.getElementById('inp-feed-food').value;
+      const recGrams = getRecommendedFeedingGrams(foodId);
+      const hintEl = document.getElementById('feeding-recommend-hint');
+      if (!foodId) {
+        hintEl.innerText = '💡 请先添加猫粮数据';
+      } else if (recGrams > 0) {
+        hintEl.innerHTML = `💡 依据前两日平均与热量缺口，建议本次加粮: <strong>${recGrams} 克</strong>`;
+      } else {
+        hintEl.innerText = '💡 当天热量需求已达标，建议适量投喂';
+      }
+      calculateEatenGrams();
+    }
+
+    function calculateEatenGrams() {
+      const prevFed = parseFloat(document.getElementById('inp-feed-prev-fed').value) || 0;
+      const leftover = parseFloat(document.getElementById('inp-feed-leftover-grams').value) || 0;
+      const eaten = Math.max(0, prevFed - leftover);
+      
+      const foodId = document.getElementById('inp-feed-food').value;
+      const food = state.foods.find(f => f.id === parseInt(foodId));
+      const kcal = food ? Math.round((eaten * food.calories_per_kg / 1000) * 10) / 10 : 0;
+
+      document.getElementById('computed-eaten-grams').innerText = eaten;
+      document.getElementById('computed-intake-kcal').innerText = kcal;
+    }
+
+    // --- CHART 1: WEIGHT TREND CHART ---
+    function renderWeightChart() {
+      const sorted = [...state.weights].sort((a,b) => new Date(a.logged_at) - new Date(b.logged_at));
+      const container = document.getElementById('chart-container');
+      if (sorted.length < 2) {
+        container.innerHTML = `<div style="text-align:center; color:#94a3b8; font-size:12px; padding-top:50px;">请录入至少 2 条体重记录查看趋势</div>`;
+        return;
+      }
+      const minW = Math.min(...sorted.map(w=>w.weight_kg)) - 0.2;
+      const maxW = Math.max(...sorted.map(w=>w.weight_kg)) + 0.2;
+      const range = maxW - minW || 1;
+
+      const pts = sorted.map((w, idx) => {
+        const x = (idx / (sorted.length - 1)) * 300 + 20;
+        const y = 130 - ((w.weight_kg - minW) / range) * 100;
+        return { x, y, weight_kg: w.weight_kg, weight_lbs: w.weight_lbs, date: w.logged_at };
+      });
+
+      const pathD = pts.reduce((acc, p, i) => i === 0 ? `M ${p.x} ${p.y}` : `${acc} L ${p.x} ${p.y}`, '');
+
+      container.innerHTML = `
+        <svg viewBox="0 0 340 160" style="width:100%; height:100%;">
+          <line x1="0" y1="30" x2="340" y2="30" stroke="#f1f5f9" stroke-dasharray="4" />
+          <line x1="0" y1="80" x2="340" y2="80" stroke="#f1f5f9" stroke-dasharray="4" />
+          <line x1="0" y1="130" x2="340" y2="130" stroke="#f1f5f9" stroke-dasharray="4" />
+          <path d="${pathD}" fill="none" stroke="#f59e0b" stroke-width="3" stroke-linecap="round" />
+          ${pts.map(p => `
+            <circle cx="${p.x}" cy="${p.y}" r="4.5" fill="#fff" stroke="#d97706" stroke-width="2.5" />
+            <text x="${p.x}" y="${p.y - 8}" text-anchor="middle" font-size="9" font-weight="800" fill="#78350f">${p.weight_lbs}lbs (${p.weight_kg}kg)</text>
+            <text x="${p.x}" y="152" text-anchor="middle" font-size="8" fill="#94a3b8">${p.date.slice(5)}</text>
+          `).join('')}
+        </svg>
+      `;
+    }
+
+    // --- CHART 2: CALORIE INTAKE VS DER TARGET OVERLAY CHART (DAY/WEEK/MONTH/YEAR) ---
+    function changeCalorieGranularity(gran, btn) {
+      state.calorieGranularity = gran;
+      document.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      renderCalorieVsDerChart();
+    }
+
+    function getISOWeekKey(dateStr) {
+      const d = new Date(dateStr);
+      d.setHours(0,0,0,0);
+      d.setDate(d.getDate() + 4 - (d.getDay()||7));
+      const yearStart = new Date(d.getFullYear(),0,1);
+      const weekNo = Math.ceil(( ( (d - yearStart) / 86400000) + 1)/7);
+      return `${d.getFullYear()}-W${weekNo < 10 ? '0' + weekNo : weekNo}`;
+    }
+
+    function renderCalorieVsDerChart() {
+      const container = document.getElementById('calorie-chart-container');
+      const energy = computeEnergy();
+      const derTarget = energy.der;
+
+      if (state.feedings.length === 0) {
+        container.innerHTML = `<div style="text-align:center; color:#94a3b8; font-size:12px; padding-top:60px;">暂无投喂数据，点击【🥣 投喂】添加记录查看热量对比</div>`;
+        return;
+      }
+
+      const gran = state.calorieGranularity || 'day';
+      let grouped = {};
+
+      state.feedings.forEach(f => {
+        const normDate = normalizeDateStr(f.date);
+        let key = normDate;
+        if (gran === 'week') key = getISOWeekKey(normDate);
+        if (gran === 'month') key = normDate.slice(0, 7);
+        if (gran === 'year') key = normDate.slice(0, 4);
+
+        if (!grouped[key]) grouped[key] = { totalKcal: 0, count: 0, dates: new Set() };
+        grouped[key].totalKcal += f.calories_intake;
+        grouped[key].count += 1;
+        grouped[key].dates.add(normDate);
+      });
+
+      const sortedKeys = Object.keys(grouped).sort();
+      const displayKeys = sortedKeys.slice(-7);
+
+      const items = displayKeys.map(k => {
+        const item = grouped[k];
+        let val = Math.round(item.totalKcal * 10) / 10;
+        if (gran !== 'day') {
+          const daysCount = Math.max(1, item.dates.size);
+          val = Math.round((item.totalKcal / daysCount) * 10) / 10;
+        }
+        return { key: k, value: val };
+      });
+
+      const maxVal = Math.max(derTarget * 1.25, ...items.map(i => i.value), 100);
+      const svgWidth = 340;
+      const svgHeight = 190;
+      const plotHeight = 130;
+      const startY = 150;
+
+      const derY = derTarget > 0 ? startY - (derTarget / maxVal) * plotHeight : startY - 20;
+      const barWidth = Math.min(30, Math.floor(220 / items.length));
+      const stepX = items.length > 1 ? 260 / (items.length - 1) : 0;
+
+      container.innerHTML = `
+        <svg viewBox="0 0 340 190" style="width:100%; height:100%;">
+          <line x1="20" y1="20" x2="320" y2="20" stroke="#f1f5f9" stroke-dasharray="3" />
+          <line x1="20" y1="85" x2="320" y2="85" stroke="#f1f5f9" stroke-dasharray="3" />
+          <line x1="20" y1="150" x2="320" y2="150" stroke="#e2e8f0" />
+
+          ${items.map((item, idx) => {
+            const x = items.length === 1 ? 160 : 40 + idx * stepX;
+            const barH = (item.value / maxVal) * plotHeight;
+            const y = startY - barH;
+            const isOver = derTarget > 0 && item.value > derTarget;
+            const barColor = isOver ? "#ef4444" : "#f59e0b";
+
+            let labelText = item.key;
+            if (gran === 'day') labelText = item.key.slice(5);
+            if (gran === 'week') labelText = item.key.replace(/^.*-/, '');
+            if (gran === 'month') labelText = item.key.slice(5) + '月';
+
+            return `
+              <rect x="${x - barWidth/2}" y="${y}" width="${barWidth}" height="${barH}" fill="${barColor}" rx="6" opacity="0.9" />
+              <text x="${x}" y="${y - 6}" text-anchor="middle" font-size="9" font-weight="800" fill="${barColor}">${item.value}</text>
+              <text x="${x}" y="166" text-anchor="middle" font-size="8" font-weight="700" fill="#64748b">${labelText}</text>
+            `;
+          }).join('')}
+
+          ${derTarget > 0 ? `
+            <line x1="15" y1="${derY}" x2="325" y2="${derY}" stroke="#ef4444" stroke-width="2.5" stroke-dasharray="6 4" />
+            <rect x="235" y="${derY - 14}" width="86" height="16" fill="#fee2e2" rx="4" />
+            <text x="278" y="${derY - 2}" text-anchor="middle" font-size="9" font-weight="800" fill="#b91c1c">DER: ${derTarget} kcal</text>
+          ` : ''}
+        </svg>
+      `;
+    }
+
+    // --- Tab Switcher ---
+    function switchTab(tabId, btn) {
+      ['dashboard', 'feeding', 'weights', 'foods', 'analytics'].forEach(id => {
+        document.getElementById('tab-' + id).style.display = id === tabId ? 'block' : 'none';
+      });
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+    }
+
+    // --- Modals ---
+    function openModal(id) {
+      document.getElementById(id).classList.add('active');
+      if (id === 'modal-cloud') {
+        document.getElementById('inp-cloud-url').value = state.cloudUrl;
+        document.getElementById('inp-cloud-key').value = state.cloudKey;
+      }
+      if (id === 'modal-weight') {
+        document.getElementById('inp-weight-date').value = getTodayStr();
+        convertLbsToKgHint();
+      }
+      if (id === 'modal-feeding') {
+        document.getElementById('inp-feed-time').value = getNowLocalIsoStr();
+        
+        // Requirement 1: Auto-fetch latest curr_fed_grams from state.feedings as default, but allow manual editing
+        sortFeedingsNewestFirst();
+        const latestFeeding = state.feedings[0];
+        if (latestFeeding && latestFeeding.curr_fed_grams !== undefined && latestFeeding.curr_fed_grams !== null) {
+          document.getElementById('inp-feed-prev-fed').value = latestFeeding.curr_fed_grams;
+        } else {
+          document.getElementById('inp-feed-prev-fed').value = 40;
+        }
+
+        document.getElementById('inp-feed-leftover-grams').value = 0;
+        document.getElementById('inp-feed-curr-fed').value = 40;
+        updateFeedingRecommendation();
+      }
+      if (id === 'modal-cat') {
+        document.getElementById('inp-cat-name').value = state.cat.name;
+        document.getElementById('inp-cat-goal').value = state.cat.activity_goal;
+      }
+    }
+    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+    // --- Delete Items ---
+    function deleteFeeding(id) {
+      state.feedings = state.feedings.filter(f => f.id !== id);
+      saveState();
+      pushToCloud({ action: 'deleteItem', sheetName: 'Feedings', id: id });
+    }
+    function deleteWeight(id) {
+      state.weights = state.weights.filter(w => w.id !== id);
+      saveState();
+      pushToCloud({ action: 'deleteItem', sheetName: 'Weights', id: id });
+    }
+    function deleteFood(id) {
+      state.foods = state.foods.filter(f => f.id !== id);
+      saveState();
+      pushToCloud({ action: 'deleteItem', sheetName: 'Foods', id: id });
+    }
+
+    // --- Form Handlers ---
+    function handleSaveCloudConfig(e) {
+      e.preventDefault();
+      state.cloudUrl = document.getElementById('inp-cloud-url').value.trim();
+      state.cloudKey = document.getElementById('inp-cloud-key').value.trim() || 'MyCatDiet2026!';
+      localStorage.setItem('cat_cloud_url', state.cloudUrl);
+      localStorage.setItem('cat_cloud_key', state.cloudKey);
+      closeModal('modal-cloud');
+      syncFromCloud();
+    }
+
+    function handleSaveWeight(e) {
+      e.preventDefault();
+      const lbs = parseFloat(document.getElementById('inp-weight-lbs').value);
+      const bcs = parseInt(document.getElementById('inp-weight-bcs').value);
+      const dt = document.getElementById('inp-weight-date').value || getTodayStr();
+      if (!lbs) return;
+
+      const kg = Math.round(lbs * 0.45359237 * 100) / 100;
+      const roundedLbs = Math.round(lbs * 100) / 100;
+      const newWeight = {
+        id: Date.now(),
+        weight_lbs: roundedLbs,
+        weight_kg: kg,
+        bcs_score: bcs,
+        logged_at: normalizeDateStr(dt)
+      };
+
+      state.weights.push(newWeight);
+      closeModal('modal-weight');
+      saveState();
+
+      pushToCloud({
+        action: 'saveWeight',
+        id: newWeight.id,
+        weight_lbs: newWeight.weight_lbs,
+        weight_kg: newWeight.weight_kg,
+        bcs_score: newWeight.bcs_score,
+        logged_at: newWeight.logged_at
+      });
+    }
+
+    function handleSaveFeeding(e) {
+      e.preventDefault();
+      const foodId = parseInt(document.getElementById('inp-feed-food').value);
+      const prevFed = parseFloat(document.getElementById('inp-feed-prev-fed').value) || 0;
+      const leftover = parseFloat(document.getElementById('inp-feed-leftover-grams').value) || 0;
+      const currFed = parseFloat(document.getElementById('inp-feed-curr-fed').value) || 0;
+      const timeVal = document.getElementById('inp-feed-time').value;
+
+      const food = state.foods.find(f => f.id === foodId);
+      if (!food) { alert('请先在猫粮库中添加猫粮！'); return; }
+
+      const eaten = Math.max(0, prevFed - leftover);
+      const kcal = Math.round((eaten * food.calories_per_kg / 1000) * 10) / 10;
+      const dateStr = timeVal ? normalizeDateStr(timeVal.slice(0, 10)) : getTodayStr();
+      const timeStr = timeVal ? formatTimeDisplay(timeVal) : formatTimeDisplay(getNowLocalIsoStr());
+
+      const newFeeding = {
+        id: Date.now(),
+        food_id: foodId,
+        date: dateStr,
+        time_str: timeStr,
+        prev_fed_grams: prevFed,
+        leftover_grams: leftover,
+        eaten_grams: eaten,
+        curr_fed_grams: currFed,
+        calories_intake: kcal
+      };
+
+      state.feedings.unshift(newFeeding);
+      closeModal('modal-feeding');
+      saveState();
+
+      pushToCloud({
+        action: 'saveFeeding',
+        id: newFeeding.id,
+        food_id: newFeeding.food_id,
+        date: newFeeding.date,
+        time_str: newFeeding.time_str,
+        prev_fed_grams: newFeeding.prev_fed_grams,
+        leftover_grams: newFeeding.leftover_grams,
+        eaten_grams: newFeeding.eaten_grams,
+        curr_fed_grams: newFeeding.curr_fed_grams,
+        calories_intake: newFeeding.calories_intake
+      });
+    }
+
+    function handleSaveFood(e) {
+      e.preventDefault();
+      const name = document.getElementById('inp-food-name').value;
+      const brand = document.getElementById('inp-food-brand').value || '自选牌子';
+      const type = document.getElementById('inp-food-type').value || 'dry';
+      const kcal = parseFloat(document.getElementById('inp-food-kcal').value);
+      const notes = document.getElementById('inp-food-notes').value || '';
+
+      if (!name || !kcal) return;
+
+      const newFood = {
+        id: Date.now(),
+        name: name,
+        brand: brand,
+        food_type: type,
+        calories_per_kg: kcal,
+        notes: notes
+      };
+
+      state.foods.push(newFood);
+      closeModal('modal-food');
+      saveState();
+
+      pushToCloud({
+        action: 'saveFood',
+        id: newFood.id,
+        name: newFood.name,
+        brand: newFood.brand,
+        food_type: newFood.food_type,
+        calories_per_kg: newFood.calories_per_kg,
+        notes: newFood.notes
+      });
+    }
+
+    function handleSaveCat(e) {
+      e.preventDefault();
+      state.cat.name = document.getElementById('inp-cat-name').value || state.cat.name;
+      state.cat.activity_goal = document.getElementById('inp-cat-goal').value;
+      closeModal('modal-cat');
+      saveState();
+
+      pushToCloud({
+        action: 'saveCat',
+        name: state.cat.name,
+        activity_goal: state.cat.activity_goal,
+        is_neutered: state.cat.is_neutered
+      });
+    }
+
+    // Initial Launch & Cloud Sync
+    renderApp();
+    syncFromCloud();
+  </script>
+</body>
+</html>
