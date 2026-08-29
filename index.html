@@ -178,19 +178,6 @@
     .progress-bar-bg { width: 100%; height: 10px; background: rgba(0,0,0,0.15); border-radius: 10px; overflow: hidden; margin-top: 8px; }
     .progress-bar-fill { height: 100%; background: #ffffff; border-radius: 10px; transition: width 0.4s ease; }
 
-    .recommendation-box {
-      background: rgba(255, 255, 255, 0.18);
-      backdrop-filter: blur(6px);
-      border-radius: 14px;
-      padding: 10px 14px;
-      margin-top: 12px;
-      font-size: 12px;
-      font-weight: 600;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
     .card-box {
       background: #ffffff;
       border-radius: var(--card-radius);
@@ -416,13 +403,7 @@
             </div>
           </div>
 
-          <!-- Dynamic Recommended Feeding Hint -->
-          <div class="recommendation-box">
-            <span>💡 建议本次加粮量:</span>
-            <strong id="banner-recommend-grams" style="color: #ffffff; font-size: 13px;">请先选择猫粮</strong>
-          </div>
-
-          <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.2); display: flex; justify-content: space-between; align-items: center; font-size: 11px;">
+          <div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.2); display: flex; justify-content: space-between; align-items: center; font-size: 11px;">
             <div>静息需求 RER: <strong id="rer-val">0.0 kcal</strong> <span style="opacity:0.8;">(70*W^0.75)</span></div>
             <div style="background: rgba(16, 185, 129, 0.9); padding: 2px 8px; border-radius: 8px; font-weight: 700;" id="deficit-badge">缺口 0 kcal</div>
           </div>
@@ -479,7 +460,7 @@
         </div>
       </div>
 
-      <!-- TAB 5: ANALYTICS (WEIGHT & CALORIE VS DER OVERLAY CHART) -->
+      <!-- TAB 5: ANALYTICS (WEIGHT & CALORIE VS DER OVERLAY CHART WITH ERROR BARS) -->
       <div id="tab-analytics" style="display: none;">
         <!-- Card 1: Calorie Intake vs DER Target Overlay Chart -->
         <div class="card-box">
@@ -495,23 +476,56 @@
           <div style="height: 190px; width: 100%;" id="calorie-chart-container">
             <!-- Dynamic SVG Injected -->
           </div>
-          <div style="display: flex; justify-content: center; gap: 16px; margin-top: 8px; font-size: 10px; font-weight: 700;">
+          <div style="display: flex; justify-content: center; gap: 16px; margin-top: 8px; font-size: 10px; font-weight: 700; flex-wrap: wrap;">
             <div style="display: flex; align-items: center; gap: 4px;">
               <span style="display:inline-block; width:12px; height:8px; background:#f59e0b; border-radius:2px;"></span>
               <span>实际摄入热量 (kcal)</span>
             </div>
             <div style="display: flex; align-items: center; gap: 4px;">
               <span style="display:inline-block; width:14px; height:0px; border-top:2px dashed #ef4444;"></span>
-              <span style="color:#ef4444;">目标 DER 虚线 (kcal)</span>
+              <span style="color:#ef4444;">DER 目标 (kcal)</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <span style="display:inline-block; width:10px; height:10px; border-left:1.5px solid #1e293b; border-right:1.5px solid #1e293b; position:relative;"><span style="position:absolute; top:4px; left:0; right:0; border-top:1.5px solid #1e293b;"></span></span>
+              <span style="color:#475569;">标准差波动 (Error Bar)</span>
             </div>
           </div>
         </div>
 
-        <!-- Card 2: Weight Trend Chart -->
+        <!-- Card 2: Weight Trend Bar Chart (Improvement 2: Bar Chart + Unit Switcher [kg]/[lbs]) -->
         <div class="card-box">
-          <div class="card-title" style="margin-bottom: 14px;">⚖️ 体重变化趋势图表 (kg / lbs)</div>
-          <div style="height: 160px; width: 100%;" id="chart-container">
-            <div style="text-align:center; color:#94a3b8; font-size:12px; padding-top:50px;">请录入至少 2 条体重记录查看趋势</div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <div class="card-title">⚖️ 体重变化趋势</div>
+            <!-- Unit Selector Buttons [kg] / [lbs] -->
+            <div class="sub-tab-bar">
+              <button class="sub-tab-btn active" id="btn-wunit-kg" onclick="changeWeightUnit('kg', this)">kg</button>
+              <button class="sub-tab-btn" id="btn-wunit-lbs" onclick="changeWeightUnit('lbs', this)">lbs</button>
+            </div>
+          </div>
+
+          <!-- Granularity Selector Buttons [日] [周] [月] [年] -->
+          <div style="display: flex; justify-content: flex-end; margin-bottom: 12px;">
+            <div class="sub-tab-bar">
+              <button class="sub-tab-btn active" id="btn-wgran-day" onclick="changeWeightGranularity('day', this)">日</button>
+              <button class="sub-tab-btn" id="btn-wgran-week" onclick="changeWeightGranularity('week', this)">周</button>
+              <button class="sub-tab-btn" id="btn-wgran-month" onclick="changeWeightGranularity('month', this)">月</button>
+              <button class="sub-tab-btn" id="btn-wgran-year" onclick="changeWeightGranularity('year', this)">年</button>
+            </div>
+          </div>
+
+          <div style="height: 190px; width: 100%;" id="chart-container">
+            <div style="text-align:center; color:#94a3b8; font-size:12px; padding-top:50px;">请录入体重记录查看趋势</div>
+          </div>
+
+          <div style="display: flex; justify-content: center; gap: 16px; margin-top: 8px; font-size: 10px; font-weight: 700; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <span style="display:inline-block; width:12px; height:8px; background:#3b82f6; border-radius:2px;"></span>
+              <span>平均体重柱状图</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <span style="display:inline-block; width:10px; height:10px; border-left:1.5px solid #0369a1; border-right:1.5px solid #0369a1; position:relative;"><span style="position:absolute; top:4px; left:0; right:0; border-top:1.5px solid #0369a1;"></span></span>
+              <span style="color:#0369a1;">标准差波动 (Error Bar)</span>
+            </div>
           </div>
         </div>
       </div>
@@ -598,7 +612,7 @@
     </div>
   </div>
 
-  <!-- MODAL 2: FEEDING -->
+  <!-- MODAL 2: FEEDING (Improvement 1: Restored exact recommendation text) -->
   <div class="modal-overlay" id="modal-feeding">
     <div class="modal-card">
       <div class="modal-title">🥣 记录饮食投喂</div>
@@ -606,39 +620,53 @@
         
         <div class="form-group">
           <label class="form-label"><span>猫粮/罐头选择</span></label>
-          <select id="inp-feed-food" class="form-select" onchange="updateFeedingRecommendation()"></select>
+          <select id="inp-feed-food" class="form-select" onchange="toggleFeedingInputMode()"></select>
         </div>
 
-        <!-- Smart Recommendation Hint -->
+        <!-- Restored Recommendation Badge Text -->
         <div class="recommend-badge" id="feeding-recommend-hint">
-          💡 依据前两日平均与热量缺口，建议本次加粮: 0 g
+          💡 依据前两日平均与热量缺口，建议本次投食量： 0 g
         </div>
 
-        <div class="form-group">
-          <label class="form-label">
-            <span>上一次投喂食物克数 (g)</span>
-            <span style="font-size:10px; color:#f59e0b; font-weight:700;">(自动取同步文档上餐投粮值)</span>
-          </label>
-          <input type="number" step="1" required placeholder="上餐投放的克数，如: 40" id="inp-feed-prev-fed" class="form-input" oninput="calculateEatenGrams()" />
-        </div>
+        <!-- MODE A: 主食干粮 (dry) INPUT FIELDS -->
+        <div id="feeding-dry-fields">
+          <div class="form-group">
+            <label class="form-label">
+              <span>上一次投喂食物克数 (g)</span>
+              <span style="font-size:10px; color:#f59e0b; font-weight:700;">(自动取同步文档上餐投粮值)</span>
+            </label>
+            <input type="number" step="1" placeholder="上餐投放的克数，如: 40" id="inp-feed-prev-fed" class="form-input" oninput="calculateEatenGrams()" />
+          </div>
 
-        <div class="form-group">
-          <label class="form-label"><span>本次投喂时上顿剩余克数 (g)</span></label>
-          <input type="number" step="1" value="0" placeholder="本次加粮前碗里剩的克数，填 0 即吃光" id="inp-feed-leftover-grams" class="form-input" oninput="calculateEatenGrams()" />
-        </div>
+          <div class="form-group">
+            <label class="form-label"><span>本次投喂时上顿剩余克数 (g)</span></label>
+            <input type="number" step="1" value="0" placeholder="本次加粮前碗里剩的克数，填 0 即吃光" id="inp-feed-leftover-grams" class="form-input" oninput="calculateEatenGrams()" />
+          </div>
 
-        <!-- Highlighted Eaten Calculation -->
-        <div style="background: var(--slate-100); padding: 10px 14px; border-radius: 14px; font-size: 12px; font-weight: 700; color: var(--slate-600); margin-bottom: 12px; border: 1px stroke #cbd5e1;">
-          <div>实际吃掉克数 = <span style="color:#d97706;">上一次投喂克数</span> − <span style="color:#ef4444;">本次上顿剩余</span></div>
-          <div style="margin-top: 4px; font-size: 13px;">
-            计算实际吃掉: <strong id="computed-eaten-grams" style="color: var(--primary-hover); font-size: 15px;">0</strong> g
-            (<span id="computed-intake-kcal">0</span> kcal)
+          <div style="background: var(--slate-100); padding: 10px 14px; border-radius: 14px; font-size: 12px; font-weight: 700; color: var(--slate-600); margin-bottom: 12px; border: 1px solid #cbd5e1;">
+            <div>实际吃掉克数 = <span style="color:#d97706;">上一次投喂克数</span> − <span style="color:#ef4444;">本次上顿剩余</span></div>
+            <div style="margin-top: 4px; font-size: 13px;">
+              计算实际吃掉: <strong id="computed-eaten-grams" style="color: var(--primary-hover); font-size: 15px;">0</strong> g
+              (<span id="computed-intake-kcal">0</span> kcal)
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label"><span>本次加粮/投喂食物克数 (g)</span></label>
+            <input type="number" step="1" placeholder="本次新加入碗里的克数，如: 45" id="inp-feed-curr-fed" class="form-input" />
           </div>
         </div>
 
-        <div class="form-group">
-          <label class="form-label"><span>本次加粮/投喂食物克数 (g)</span></label>
-          <input type="number" step="1" required placeholder="本次新加入碗里的克数，如: 45" id="inp-feed-curr-fed" class="form-input" />
+        <!-- MODE B: 其余类型（湿粮/罐头、冻干/生骨肉、零食加餐）INPUT FIELDS -->
+        <div id="feeding-other-fields" style="display: none;">
+          <div class="form-group">
+            <label class="form-label"><span>实际吃掉克数 (g)</span></label>
+            <input type="number" step="0.1" placeholder="例如: 85 (罐头/湿粮/零食实际吃掉克数)" id="inp-feed-direct-eaten" class="form-input" oninput="calculateDirectEatenGrams()" />
+          </div>
+
+          <div style="background: var(--primary-light); padding: 10px 14px; border-radius: 14px; font-size: 12px; font-weight: 700; color: #92400e; margin-bottom: 12px;">
+            计算本次摄入热量: <strong id="direct-intake-kcal" style="font-size: 15px; color: var(--primary-hover);">0</strong> kcal
+          </div>
         </div>
 
         <!-- Feeding Time -->
@@ -754,9 +782,23 @@
       foods: JSON.parse(localStorage.getItem('cat_foods_v6')) || [],
       feedings: JSON.parse(localStorage.getItem('cat_feedings_v6')) || [],
       calorieGranularity: 'day',
+      weightGranularity: 'day',
+      weightUnit: 'kg', // Improvement 2: 'kg' or 'lbs' (only show one at a time)
       cloudUrl: localStorage.getItem('cat_cloud_url') || '',
       cloudKey: localStorage.getItem('cat_cloud_key') || 'MyCatDiet2026!'
     };
+
+    // Helper: Calculate Mean & Standard Deviation
+    function calculateStats(numbers) {
+      if (!numbers || numbers.length === 0) return { mean: 0, stdDev: 0, count: 0 };
+      const sum = numbers.reduce((a, b) => a + b, 0);
+      const mean = sum / numbers.length;
+      if (numbers.length === 1) return { mean, stdDev: 0, count: 1 };
+      
+      const variance = numbers.reduce((sq, n) => sq + Math.pow(n - mean, 2), 0) / numbers.length;
+      const stdDev = Math.sqrt(variance);
+      return { mean, stdDev, count: numbers.length };
+    }
 
     // Helper: Normalize any Date or ISO string into YYYY-MM-DD local format
     function normalizeDateStr(dateStr) {
@@ -998,12 +1040,25 @@
       const food = state.foods.find(f => f.id === parseInt(foodId));
       if (!food || !food.calories_per_kg || food.calories_per_kg === 0) return 0;
 
-      // Current Intake subtracted from DER
       const remainingKcal = Math.max(0, e.der - e.todayKcal);
       if (remainingKcal === 0) return 0;
 
       const recommendedGrams = Math.round((remainingKcal / food.calories_per_kg) * 1000);
       return recommendedGrams;
+    }
+
+    // Improvement 1: Restored exact recommendation text helper
+    function updateFeedingRecommendation() {
+      const foodId = document.getElementById('inp-feed-food').value;
+      const recGrams = getRecommendedFeedingGrams(foodId);
+      const hintEl = document.getElementById('feeding-recommend-hint');
+      if (!foodId) {
+        hintEl.innerText = '💡 请先选择猫粮数据';
+      } else if (recGrams > 0) {
+        hintEl.innerHTML = `💡 依据前两日平均与热量缺口，建议本次投食量：<strong>${recGrams} g</strong>`;
+      } else {
+        hintEl.innerText = '💡 今日热量需求已达标，建议适量投喂';
+      }
     }
 
     // --- UI Renderers ---
@@ -1035,15 +1090,7 @@
         badge.innerText = `缺口 ${Math.abs(e.gap)} kcal`;
       }
 
-      // Recommend grams in banner
-      if (state.foods.length > 0) {
-        const recGrams = getRecommendedFeedingGrams(state.foods[0].id);
-        document.getElementById('banner-recommend-grams').innerText = recGrams > 0 ? `约 ${recGrams} g (${state.foods[0].name})` : '今日已达标';
-      } else {
-        document.getElementById('banner-recommend-grams').innerText = '请先添加猫粮数据';
-      }
-
-      // Today Feeding List (WITH 本次加粮/投喂食物克数)
+      // Today Feeding List
       const todayStr = getTodayStr();
       const todayFeedings = state.feedings.filter(f => normalizeDateStr(f.date) === todayStr);
       document.getElementById('today-count').innerText = `共 ${todayFeedings.length} 餐`;
@@ -1051,47 +1098,11 @@
       if (todayFeedings.length === 0) {
         todayListEl.innerHTML = `<div style="text-align:center; color:#94a3b8; font-size:12px; padding:12px;">今日暂无投喂，点击“记录今日投喂”开始</div>`;
       } else {
-        todayListEl.innerHTML = todayFeedings.map(f => {
-          const food = state.foods.find(item => item.id === f.food_id);
-          const timeDisp = formatTimeDisplay(f.time_str || f.date);
-          return `
-            <div class="item-row">
-              <div>
-                <div class="item-title">${food ? food.name : '猫粮'} <span style="font-size:10px; color:#64748b; margin-left:4px;">⏱️ ${timeDisp}</span></div>
-                <div class="item-sub">
-                  本次加粮/投喂: <strong style="color:var(--primary-hover);">${f.curr_fed_grams}g</strong> • 
-                  实际吃掉: <strong>${f.eaten_grams}g</strong> (上餐投 ${f.prev_fed_grams}g - 本次剩 ${f.leftover_grams || 0}g)
-                </div>
-              </div>
-              <div style="display:flex; align-items:center;">
-                <div class="item-val">${f.calories_intake} kcal</div>
-                <button class="btn-delete" onclick="deleteFeeding(${f.id})">✕</button>
-              </div>
-            </div>
-          `;
-        }).join('');
+        todayListEl.innerHTML = todayFeedings.map(f => renderFeedingRowHTML(f)).join('');
       }
 
-      // All Feedings (WITH 本次加粮/投喂食物克数)
-      document.getElementById('all-feeding-list').innerHTML = state.feedings.length === 0 ? `<div style="text-align:center; color:#94a3b8; font-size:12px; padding:20px;">暂无投喂历史</div>` : state.feedings.map(f => {
-        const food = state.foods.find(item => item.id === f.food_id);
-        const timeDisp = formatTimeDisplay(f.time_str || f.date);
-        return `
-          <div class="item-row">
-            <div>
-              <div class="item-title">${food ? food.name : '猫粮'} <span style="font-size:10px; color:#64748b; margin-left:4px;">⏱️ ${timeDisp}</span></div>
-              <div class="item-sub">
-                本次加粮/投喂: <strong style="color:var(--primary-hover);">${f.curr_fed_grams}g</strong> • 
-                实际吃掉: <strong>${f.eaten_grams}g</strong> (上餐投 ${f.prev_fed_grams}g - 剩 ${f.leftover_grams || 0}g)
-              </div>
-            </div>
-            <div style="display:flex; align-items:center;">
-              <div class="item-val">${f.calories_intake} kcal</div>
-              <button class="btn-delete" onclick="deleteFeeding(${f.id})">✕</button>
-            </div>
-          </div>
-        `;
-      }).join('');
+      // All Feedings
+      document.getElementById('all-feeding-list').innerHTML = state.feedings.length === 0 ? `<div style="text-align:center; color:#94a3b8; font-size:12px; padding:20px;">暂无投喂历史</div>` : state.feedings.map(f => renderFeedingRowHTML(f)).join('');
 
       // All Weights (lbs & kg)
       const sortedW = [...state.weights].sort((a,b) => new Date(b.logged_at) - new Date(a.logged_at));
@@ -1138,24 +1149,75 @@
       renderCalorieVsDerChart();
     }
 
+    function renderFeedingRowHTML(f) {
+      const food = state.foods.find(item => item.id === f.food_id);
+      const timeDisp = formatTimeDisplay(f.time_str || f.date);
+      const isDry = !food || food.food_type === 'dry';
+
+      if (isDry) {
+        return `
+          <div class="item-row">
+            <div>
+              <div class="item-title">${food ? food.name : '猫粮'} <span style="font-size:10px; color:#64748b; margin-left:4px;">⏱️ ${timeDisp}</span></div>
+              <div class="item-sub">
+                本次加粮: <strong style="color:var(--primary-hover);">${f.curr_fed_grams}g</strong> • 
+                实际吃掉: <strong>${f.eaten_grams}g</strong> (上餐投 ${f.prev_fed_grams}g - 本次剩 ${f.leftover_grams || 0}g)
+              </div>
+            </div>
+            <div style="display:flex; align-items:center;">
+              <div class="item-val">${f.calories_intake} kcal</div>
+              <button class="btn-delete" onclick="deleteFeeding(${f.id})">✕</button>
+            </div>
+          </div>
+        `;
+      } else {
+        const typeObj = FOOD_TYPE_MAP[food ? food.food_type : 'wet'] || FOOD_TYPE_MAP.wet;
+        return `
+          <div class="item-row">
+            <div>
+              <div class="item-title">
+                ${food ? food.name : '湿粮/罐头'}
+                <span class="food-type-badge ${typeObj.class}">${typeObj.label}</span>
+                <span style="font-size:10px; color:#64748b; margin-left:4px;">⏱️ ${timeDisp}</span>
+              </div>
+              <div class="item-sub">
+                实际吃掉: <strong style="color:var(--primary-hover); font-size:13px;">${f.eaten_grams}g</strong>
+              </div>
+            </div>
+            <div style="display:flex; align-items:center;">
+              <div class="item-val">${f.calories_intake} kcal</div>
+              <button class="btn-delete" onclick="deleteFeeding(${f.id})">✕</button>
+            </div>
+          </div>
+        `;
+      }
+    }
+
     function convertLbsToKgHint() {
       const lbs = parseFloat(document.getElementById('inp-weight-lbs').value) || 0;
       const kg = Math.round(lbs * 0.45359237 * 100) / 100;
       document.getElementById('lbs-to-kg-hint').innerText = kg + ' kg';
     }
 
-    function updateFeedingRecommendation() {
+    function toggleFeedingInputMode() {
       const foodId = document.getElementById('inp-feed-food').value;
-      const recGrams = getRecommendedFeedingGrams(foodId);
-      const hintEl = document.getElementById('feeding-recommend-hint');
-      if (!foodId) {
-        hintEl.innerText = '💡 请先添加猫粮数据';
-      } else if (recGrams > 0) {
-        hintEl.innerHTML = `💡 依据前两日平均与热量缺口，建议本次加粮: <strong>${recGrams} 克</strong>`;
+      const food = state.foods.find(f => f.id === parseInt(foodId));
+      const isDry = !food || food.food_type === 'dry';
+
+      const dryBox = document.getElementById('feeding-dry-fields');
+      const otherBox = document.getElementById('feeding-other-fields');
+      
+      if (isDry) {
+        dryBox.style.display = 'block';
+        otherBox.style.display = 'none';
+        calculateEatenGrams();
       } else {
-        hintEl.innerText = '💡 当天热量需求已达标，建议适量投喂';
+        dryBox.style.display = 'none';
+        otherBox.style.display = 'block';
+        calculateDirectEatenGrams();
       }
-      calculateEatenGrams();
+
+      updateFeedingRecommendation();
     }
 
     function calculateEatenGrams() {
@@ -1171,45 +1233,125 @@
       document.getElementById('computed-intake-kcal').innerText = kcal;
     }
 
-    // --- CHART 1: WEIGHT TREND CHART ---
+    function calculateDirectEatenGrams() {
+      const eaten = parseFloat(document.getElementById('inp-feed-direct-eaten').value) || 0;
+      const foodId = document.getElementById('inp-feed-food').value;
+      const food = state.foods.find(f => f.id === parseInt(foodId));
+      const kcal = food ? Math.round((eaten * food.calories_per_kg / 1000) * 10) / 10 : 0;
+
+      document.getElementById('direct-intake-kcal').innerText = kcal;
+    }
+
+    // --- CHART 1: WEIGHT TREND BAR CHART (Improvement 2: Bar Chart + Unit Switcher [kg] / [lbs]) ---
+    function changeWeightUnit(unit, btn) {
+      state.weightUnit = unit;
+      document.querySelectorAll('#tab-analytics .sub-tab-bar button[id^="btn-wunit"]').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      renderWeightChart();
+    }
+
+    function changeWeightGranularity(gran, btn) {
+      state.weightGranularity = gran;
+      document.querySelectorAll('#tab-analytics .sub-tab-bar button[id^="btn-wgran"]').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      renderWeightChart();
+    }
+
     function renderWeightChart() {
-      const sorted = [...state.weights].sort((a,b) => new Date(a.logged_at) - new Date(b.logged_at));
       const container = document.getElementById('chart-container');
-      if (sorted.length < 2) {
-        container.innerHTML = `<div style="text-align:center; color:#94a3b8; font-size:12px; padding-top:50px;">请录入至少 2 条体重记录查看趋势</div>`;
+      if (state.weights.length < 1) {
+        container.innerHTML = `<div style="text-align:center; color:#94a3b8; font-size:12px; padding-top:50px;">请录入体重记录查看趋势</div>`;
         return;
       }
-      const minW = Math.min(...sorted.map(w=>w.weight_kg)) - 0.2;
-      const maxW = Math.max(...sorted.map(w=>w.weight_kg)) + 0.2;
-      const range = maxW - minW || 1;
 
-      const pts = sorted.map((w, idx) => {
-        const x = (idx / (sorted.length - 1)) * 300 + 20;
-        const y = 130 - ((w.weight_kg - minW) / range) * 100;
-        return { x, y, weight_kg: w.weight_kg, weight_lbs: w.weight_lbs, date: w.logged_at };
+      const gran = state.weightGranularity || 'day';
+      const unit = state.weightUnit || 'kg';
+      let grouped = {};
+
+      state.weights.forEach(w => {
+        const normDate = normalizeDateStr(w.logged_at);
+        let key = normDate;
+        if (gran === 'week') key = getISOWeekKey(normDate);
+        if (gran === 'month') key = normDate.slice(0, 7);
+        if (gran === 'year') key = normDate.slice(0, 4);
+
+        if (!grouped[key]) grouped[key] = [];
+        // Unit conversion: kg vs lbs
+        const val = unit === 'lbs' ? w.weight_lbs : w.weight_kg;
+        grouped[key].push(val);
       });
 
-      const pathD = pts.reduce((acc, p, i) => i === 0 ? `M ${p.x} ${p.y}` : `${acc} L ${p.x} ${p.y}`, '');
+      const sortedKeys = Object.keys(grouped).sort();
+      const displayKeys = sortedKeys.slice(-7);
+
+      const items = displayKeys.map(k => {
+        const arr = grouped[k];
+        const stats = calculateStats(arr);
+        const meanVal = Math.round(stats.mean * 100) / 100;
+        const stdDevVal = Math.round(stats.stdDev * 100) / 100;
+        return { key: k, meanVal, stdDevVal, count: stats.count };
+      });
+
+      if (items.length === 0) {
+        container.innerHTML = `<div style="text-align:center; color:#94a3b8; font-size:12px; padding-top:50px;">暂无体重数据</div>`;
+        return;
+      }
+
+      // Max and Min scales including StdDev
+      const allValsHigh = items.map(i => i.meanVal + (i.count > 1 ? i.stdDevVal : 0));
+      const maxVal = Math.max(...allValsHigh, unit === 'lbs' ? 5 : 2.5);
+      
+      const svgWidth = 340;
+      const svgHeight = 190;
+      const plotHeight = 130;
+      const startY = 150;
+      const barWidth = Math.min(30, Math.floor(220 / items.length));
+      const stepX = items.length > 1 ? 260 / (items.length - 1) : 0;
 
       container.innerHTML = `
-        <svg viewBox="0 0 340 160" style="width:100%; height:100%;">
-          <line x1="0" y1="30" x2="340" y2="30" stroke="#f1f5f9" stroke-dasharray="4" />
-          <line x1="0" y1="80" x2="340" y2="80" stroke="#f1f5f9" stroke-dasharray="4" />
-          <line x1="0" y1="130" x2="340" y2="130" stroke="#f1f5f9" stroke-dasharray="4" />
-          <path d="${pathD}" fill="none" stroke="#f59e0b" stroke-width="3" stroke-linecap="round" />
-          ${pts.map(p => `
-            <circle cx="${p.x}" cy="${p.y}" r="4.5" fill="#fff" stroke="#d97706" stroke-width="2.5" />
-            <text x="${p.x}" y="${p.y - 8}" text-anchor="middle" font-size="9" font-weight="800" fill="#78350f">${p.weight_lbs}lbs (${p.weight_kg}kg)</text>
-            <text x="${p.x}" y="152" text-anchor="middle" font-size="8" fill="#94a3b8">${p.date.slice(5)}</text>
-          `).join('')}
+        <svg viewBox="0 0 340 190" style="width:100%; height:100%;">
+          <line x1="20" y1="20" x2="320" y2="20" stroke="#f1f5f9" stroke-dasharray="3" />
+          <line x1="20" y1="85" x2="320" y2="85" stroke="#f1f5f9" stroke-dasharray="3" />
+          <line x1="20" y1="150" x2="320" y2="150" stroke="#e2e8f0" />
+
+          ${items.map((item, idx) => {
+            const x = items.length === 1 ? 160 : 40 + idx * stepX;
+            const barH = (item.meanVal / maxVal) * plotHeight;
+            const y = startY - barH;
+            const barColor = "#3b82f6";
+
+            let labelText = item.key;
+            if (gran === 'day') labelText = item.key.slice(5);
+            if (gran === 'week') labelText = item.key.replace(/^.*-/, '');
+            if (gran === 'month') labelText = item.key.slice(5) + '月';
+
+            // Error Bar Lines (Dark Blue / Slate)
+            let errorBarSVG = '';
+            if (item.count > 1 && item.stdDevVal > 0) {
+              const highY = Math.max(10, startY - ((item.meanVal + item.stdDevVal) / maxVal) * plotHeight);
+              const lowY = Math.min(startY, startY - (Math.max(0, item.meanVal - item.stdDevVal) / maxVal) * plotHeight);
+              errorBarSVG = `
+                <line x1="${x}" y1="${highY}" x2="${x}" y2="${lowY}" stroke="#0369a1" stroke-width="1.8" />
+                <line x1="${x - 4}" y1="${highY}" x2="${x + 4}" y2="${highY}" stroke="#0369a1" stroke-width="1.8" />
+                <line x1="${x - 4}" y1="${lowY}" x2="${x + 4}" y2="${lowY}" stroke="#0369a1" stroke-width="1.8" />
+              `;
+            }
+
+            return `
+              <rect x="${x - barWidth/2}" y="${y}" width="${barWidth}" height="${barH}" fill="${barColor}" rx="6" opacity="0.9" />
+              ${errorBarSVG}
+              <text x="${x}" y="${y - 6}" text-anchor="middle" font-size="9" font-weight="800" fill="#1e3a8a">${item.meanVal} ${unit}</text>
+              <text x="${x}" y="166" text-anchor="middle" font-size="8" font-weight="700" fill="#64748b">${labelText}</text>
+            `;
+          }).join('')}
         </svg>
       `;
     }
 
-    // --- CHART 2: CALORIE INTAKE VS DER TARGET OVERLAY CHART (DAY/WEEK/MONTH/YEAR) ---
+    // --- CHART 2: CALORIE INTAKE VS DER TARGET OVERLAY CHART ---
     function changeCalorieGranularity(gran, btn) {
       state.calorieGranularity = gran;
-      document.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('#tab-analytics .sub-tab-bar button[id^="btn-gran"]').forEach(b => b.classList.remove('active'));
       if (btn) btn.classList.add('active');
       renderCalorieVsDerChart();
     }
@@ -1243,26 +1385,25 @@
         if (gran === 'month') key = normDate.slice(0, 7);
         if (gran === 'year') key = normDate.slice(0, 4);
 
-        if (!grouped[key]) grouped[key] = { totalKcal: 0, count: 0, dates: new Set() };
-        grouped[key].totalKcal += f.calories_intake;
-        grouped[key].count += 1;
-        grouped[key].dates.add(normDate);
+        if (!grouped[key]) grouped[key] = { dailyMap: {} };
+        if (!grouped[key].dailyMap[normDate]) grouped[key].dailyMap[normDate] = 0;
+        grouped[key].dailyMap[normDate] += f.calories_intake;
       });
 
       const sortedKeys = Object.keys(grouped).sort();
       const displayKeys = sortedKeys.slice(-7);
 
       const items = displayKeys.map(k => {
-        const item = grouped[k];
-        let val = Math.round(item.totalKcal * 10) / 10;
-        if (gran !== 'day') {
-          const daysCount = Math.max(1, item.dates.size);
-          val = Math.round((item.totalKcal / daysCount) * 10) / 10;
-        }
-        return { key: k, value: val };
+        const dailyMap = grouped[k].dailyMap;
+        const dailyTotals = Object.values(dailyMap);
+        const stats = calculateStats(dailyTotals);
+        const meanVal = Math.round(stats.mean * 10) / 10;
+        const stdDevVal = Math.round(stats.stdDev * 10) / 10;
+        return { key: k, meanVal, stdDevVal, count: dailyTotals.length };
       });
 
-      const maxVal = Math.max(derTarget * 1.25, ...items.map(i => i.value), 100);
+      const allValsHigh = items.map(i => i.meanVal + (i.count > 1 ? i.stdDevVal : 0));
+      const maxVal = Math.max(derTarget * 1.25, ...allValsHigh, 100);
       const svgWidth = 340;
       const svgHeight = 190;
       const plotHeight = 130;
@@ -1280,9 +1421,9 @@
 
           ${items.map((item, idx) => {
             const x = items.length === 1 ? 160 : 40 + idx * stepX;
-            const barH = (item.value / maxVal) * plotHeight;
+            const barH = (item.meanVal / maxVal) * plotHeight;
             const y = startY - barH;
-            const isOver = derTarget > 0 && item.value > derTarget;
+            const isOver = derTarget > 0 && item.meanVal > derTarget;
             const barColor = isOver ? "#ef4444" : "#f59e0b";
 
             let labelText = item.key;
@@ -1290,9 +1431,22 @@
             if (gran === 'week') labelText = item.key.replace(/^.*-/, '');
             if (gran === 'month') labelText = item.key.slice(5) + '月';
 
+            // Error Bar Lines (Black / Dark Slate)
+            let errorBarSVG = '';
+            if (item.count > 1 && item.stdDevVal > 0) {
+              const highY = Math.max(10, startY - ((item.meanVal + item.stdDevVal) / maxVal) * plotHeight);
+              const lowY = Math.min(startY, startY - (Math.max(0, item.meanVal - item.stdDevVal) / maxVal) * plotHeight);
+              errorBarSVG = `
+                <line x1="${x}" y1="${highY}" x2="${x}" y2="${lowY}" stroke="#1e293b" stroke-width="1.8" />
+                <line x1="${x - 4}" y1="${highY}" x2="${x + 4}" y2="${highY}" stroke="#1e293b" stroke-width="1.8" />
+                <line x1="${x - 4}" y1="${lowY}" x2="${x + 4}" y2="${lowY}" stroke="#1e293b" stroke-width="1.8" />
+              `;
+            }
+
             return `
               <rect x="${x - barWidth/2}" y="${y}" width="${barWidth}" height="${barH}" fill="${barColor}" rx="6" opacity="0.9" />
-              <text x="${x}" y="${y - 6}" text-anchor="middle" font-size="9" font-weight="800" fill="${barColor}">${item.value}</text>
+              ${errorBarSVG}
+              <text x="${x}" y="${y - 6}" text-anchor="middle" font-size="9" font-weight="800" fill="${barColor}">${item.meanVal}</text>
               <text x="${x}" y="166" text-anchor="middle" font-size="8" font-weight="700" fill="#64748b">${labelText}</text>
             `;
           }).join('')}
@@ -1329,7 +1483,6 @@
       if (id === 'modal-feeding') {
         document.getElementById('inp-feed-time').value = getNowLocalIsoStr();
         
-        // Requirement 1: Auto-fetch latest curr_fed_grams from state.feedings as default, but allow manual editing
         sortFeedingsNewestFirst();
         const latestFeeding = state.feedings[0];
         if (latestFeeding && latestFeeding.curr_fed_grams !== undefined && latestFeeding.curr_fed_grams !== null) {
@@ -1340,7 +1493,8 @@
 
         document.getElementById('inp-feed-leftover-grams').value = 0;
         document.getElementById('inp-feed-curr-fed').value = 40;
-        updateFeedingRecommendation();
+        document.getElementById('inp-feed-direct-eaten').value = '';
+        toggleFeedingInputMode();
       }
       if (id === 'modal-cat') {
         document.getElementById('inp-cat-name').value = state.cat.name;
@@ -1411,15 +1565,29 @@
     function handleSaveFeeding(e) {
       e.preventDefault();
       const foodId = parseInt(document.getElementById('inp-feed-food').value);
-      const prevFed = parseFloat(document.getElementById('inp-feed-prev-fed').value) || 0;
-      const leftover = parseFloat(document.getElementById('inp-feed-leftover-grams').value) || 0;
-      const currFed = parseFloat(document.getElementById('inp-feed-curr-fed').value) || 0;
       const timeVal = document.getElementById('inp-feed-time').value;
 
       const food = state.foods.find(f => f.id === foodId);
       if (!food) { alert('请先在猫粮库中添加猫粮！'); return; }
 
-      const eaten = Math.max(0, prevFed - leftover);
+      const isDry = food.food_type === 'dry';
+      let prevFed = 0;
+      let leftover = 0;
+      let eaten = 0;
+      let currFed = 0;
+
+      if (isDry) {
+        prevFed = parseFloat(document.getElementById('inp-feed-prev-fed').value) || 0;
+        leftover = parseFloat(document.getElementById('inp-feed-leftover-grams').value) || 0;
+        eaten = Math.max(0, prevFed - leftover);
+        currFed = parseFloat(document.getElementById('inp-feed-curr-fed').value) || 0;
+      } else {
+        eaten = parseFloat(document.getElementById('inp-feed-direct-eaten').value) || 0;
+        prevFed = eaten;
+        leftover = 0;
+        currFed = eaten;
+      }
+
       const kcal = Math.round((eaten * food.calories_per_kg / 1000) * 10) / 10;
       const dateStr = timeVal ? normalizeDateStr(timeVal.slice(0, 10)) : getTodayStr();
       const timeStr = timeVal ? formatTimeDisplay(timeVal) : formatTimeDisplay(getNowLocalIsoStr());
