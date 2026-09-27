@@ -492,7 +492,7 @@
           </div>
         </div>
 
-        <!-- Card 2: Weight Trend Bar Chart (Improvement 2: Bar Chart + Unit Switcher [kg]/[lbs]) -->
+        <!-- Card 2: Weight Trend Bar Chart (Improvement: Bar Chart + Unit Switcher [kg]/[lbs]) -->
         <div class="card-box">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
             <div class="card-title">⚖️ 体重变化趋势</div>
@@ -612,7 +612,7 @@
     </div>
   </div>
 
-  <!-- MODAL 2: FEEDING (Improvement 1: Restored exact recommendation text) -->
+  <!-- MODAL 2: FEEDING -->
   <div class="modal-overlay" id="modal-feeding">
     <div class="modal-card">
       <div class="modal-title">🥣 记录饮食投喂</div>
@@ -623,7 +623,7 @@
           <select id="inp-feed-food" class="form-select" onchange="toggleFeedingInputMode()"></select>
         </div>
 
-        <!-- Restored Recommendation Badge Text -->
+        <!-- Recommendation Badge Text -->
         <div class="recommend-badge" id="feeding-recommend-hint">
           💡 依据前两日平均与热量缺口，建议本次投食量： 0 g
         </div>
@@ -633,7 +633,7 @@
           <div class="form-group">
             <label class="form-label">
               <span>上一次投喂食物克数 (g)</span>
-              <span style="font-size:10px; color:#f59e0b; font-weight:700;">(自动取同步文档上餐投粮值)</span>
+              <span style="font-size:10px; color:#f59e0b; font-weight:700;">(自动匹配所选猫粮上餐投粮值)</span>
             </label>
             <input type="number" step="1" placeholder="上餐投放的克数，如: 40" id="inp-feed-prev-fed" class="form-input" oninput="calculateEatenGrams()" />
           </div>
@@ -783,7 +783,7 @@
       feedings: JSON.parse(localStorage.getItem('cat_feedings_v6')) || [],
       calorieGranularity: 'day',
       weightGranularity: 'day',
-      weightUnit: 'kg', // Improvement 2: 'kg' or 'lbs' (only show one at a time)
+      weightUnit: 'kg', // 'kg' or 'lbs'
       cloudUrl: localStorage.getItem('cat_cloud_url') || '',
       cloudKey: localStorage.getItem('cat_cloud_key') || 'MyCatDiet2026!'
     };
@@ -1047,7 +1047,7 @@
       return recommendedGrams;
     }
 
-    // Improvement 1: Restored exact recommendation text helper
+    // Recommendation text helper
     function updateFeedingRecommendation() {
       const foodId = document.getElementById('inp-feed-food').value;
       const recGrams = getRecommendedFeedingGrams(foodId);
@@ -1058,6 +1058,21 @@
         hintEl.innerHTML = `💡 依据前两日平均与热量缺口，建议本次投食量：<strong>${recGrams} g</strong>`;
       } else {
         hintEl.innerText = '💡 今日热量需求已达标，建议适量投喂';
+      }
+    }
+
+    // Requirement 2: Auto-update prev_fed_grams matching the SELECTED food's latest feeding record
+    function updatePrevFedGramsForSelectedFood() {
+      const foodId = parseInt(document.getElementById('inp-feed-food').value);
+      if (!foodId) return;
+
+      sortFeedingsNewestFirst();
+      const foodFeeding = state.feedings.find(f => f.food_id === foodId && f.curr_fed_grams !== undefined && f.curr_fed_grams !== null && f.curr_fed_grams > 0);
+
+      if (foodFeeding) {
+        document.getElementById('inp-feed-prev-fed').value = foodFeeding.curr_fed_grams;
+      } else {
+        document.getElementById('inp-feed-prev-fed').value = 40;
       }
     }
 
@@ -1210,6 +1225,7 @@
       if (isDry) {
         dryBox.style.display = 'block';
         otherBox.style.display = 'none';
+        updatePrevFedGramsForSelectedFood();
         calculateEatenGrams();
       } else {
         dryBox.style.display = 'none';
@@ -1242,7 +1258,7 @@
       document.getElementById('direct-intake-kcal').innerText = kcal;
     }
 
-    // --- CHART 1: WEIGHT TREND BAR CHART (Improvement 2: Bar Chart + Unit Switcher [kg] / [lbs]) ---
+    // --- CHART 1: WEIGHT TREND BAR CHART ---
     function changeWeightUnit(unit, btn) {
       state.weightUnit = unit;
       document.querySelectorAll('#tab-analytics .sub-tab-bar button[id^="btn-wunit"]').forEach(b => b.classList.remove('active'));
@@ -1276,7 +1292,6 @@
         if (gran === 'year') key = normDate.slice(0, 4);
 
         if (!grouped[key]) grouped[key] = [];
-        // Unit conversion: kg vs lbs
         const val = unit === 'lbs' ? w.weight_lbs : w.weight_kg;
         grouped[key].push(val);
       });
@@ -1297,7 +1312,6 @@
         return;
       }
 
-      // Max and Min scales including StdDev
       const allValsHigh = items.map(i => i.meanVal + (i.count > 1 ? i.stdDevVal : 0));
       const maxVal = Math.max(...allValsHigh, unit === 'lbs' ? 5 : 2.5);
       
@@ -1325,7 +1339,6 @@
             if (gran === 'week') labelText = item.key.replace(/^.*-/, '');
             if (gran === 'month') labelText = item.key.slice(5) + '月';
 
-            // Error Bar Lines (Dark Blue / Slate)
             let errorBarSVG = '';
             if (item.count > 1 && item.stdDevVal > 0) {
               const highY = Math.max(10, startY - ((item.meanVal + item.stdDevVal) / maxVal) * plotHeight);
@@ -1431,7 +1444,6 @@
             if (gran === 'week') labelText = item.key.replace(/^.*-/, '');
             if (gran === 'month') labelText = item.key.slice(5) + '月';
 
-            // Error Bar Lines (Black / Dark Slate)
             let errorBarSVG = '';
             if (item.count > 1 && item.stdDevVal > 0) {
               const highY = Math.max(10, startY - ((item.meanVal + item.stdDevVal) / maxVal) * plotHeight);
@@ -1482,15 +1494,6 @@
       }
       if (id === 'modal-feeding') {
         document.getElementById('inp-feed-time').value = getNowLocalIsoStr();
-        
-        sortFeedingsNewestFirst();
-        const latestFeeding = state.feedings[0];
-        if (latestFeeding && latestFeeding.curr_fed_grams !== undefined && latestFeeding.curr_fed_grams !== null) {
-          document.getElementById('inp-feed-prev-fed').value = latestFeeding.curr_fed_grams;
-        } else {
-          document.getElementById('inp-feed-prev-fed').value = 40;
-        }
-
         document.getElementById('inp-feed-leftover-grams').value = 0;
         document.getElementById('inp-feed-curr-fed').value = 40;
         document.getElementById('inp-feed-direct-eaten').value = '';
