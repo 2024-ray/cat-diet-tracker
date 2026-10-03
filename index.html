@@ -31,7 +31,7 @@
       min-height: 100vh;
       display: flex;
       justify-content: center;
-      padding-bottom: 70px;
+      padding-bottom: 20px;
     }
 
     .app-container {
@@ -363,26 +363,6 @@
       cursor: pointer;
     }
     .btn-mini:hover { background: var(--primary-light); color: var(--primary-hover); }
-
-    /* Bottom Nav Bar */
-    nav.bottom-nav {
-      position: fixed;
-      bottom: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 100%;
-      max-width: 440px;
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(12px);
-      border-top: 1px solid rgba(0,0,0,0.06);
-      display: flex;
-      justify-around;
-      padding: 8px 0;
-      z-index: 40;
-    }
-    .nav-item { border: none; background: transparent; font-size: 10px; font-weight: 700; color: var(--slate-400); cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; }
-    .nav-item.active { color: var(--primary-hover); }
-    .nav-icon { font-size: 18px; }
   </style>
 </head>
 <body>
@@ -578,21 +558,6 @@
 
     </div>
 
-    <!-- Bottom Navigation -->
-    <nav class="bottom-nav">
-      <button class="nav-item active" onclick="switchTab('dashboard', this)">
-        <span class="nav-icon">📊</span>概览
-      </button>
-      <button class="nav-item" onclick="switchTab('feeding', this)">
-        <span class="nav-icon">🥣</span>投喂
-      </button>
-      <button class="nav-item" onclick="switchTab('weights', this)">
-        <span class="nav-icon">⚖️</span>体重
-      </button>
-      <button class="nav-item" onclick="switchTab('analytics', this)">
-        <span class="nav-icon">📈</span>图表
-      </button>
-    </nav>
   </div>
 
   <!-- MODAL 0: CLOUD SYNC CONFIG (GOOGLE SHEETS WITH DIAGNOSTICS) -->
