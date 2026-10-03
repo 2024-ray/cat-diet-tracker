@@ -105,6 +105,33 @@
     .cloud-badge.offline { background: #f1f5f9; color: #64748b; }
     .cloud-badge.error { background: #fee2e2; color: #b91c1c; }
 
+    /* Sync Loading Overlay Barrier */
+    .sync-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15, 23, 42, 0.7);
+      backdrop-filter: blur(6px);
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+    .sync-overlay.active { opacity: 1; pointer-events: auto; }
+    .sync-spinner {
+      width: 44px; height: 44px;
+      border: 4px solid rgba(255,255,255,0.2);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
     /* Tabs */
     .tab-bar {
       display: flex;
@@ -245,6 +272,18 @@
     .badge-raw { background: #fee2e2; color: #b91c1c; }
     .badge-treat { background: #f3e8ff; color: #7e22ce; }
 
+    .btn-edit {
+      background: #e0f2fe;
+      border: none;
+      color: #0369a1;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-left: 6px;
+    }
+
     .btn-delete {
       background: transparent;
       border: none;
@@ -252,7 +291,7 @@
       font-size: 11px;
       font-weight: 600;
       cursor: pointer;
-      margin-left: 8px;
+      margin-left: 6px;
     }
 
     /* Modals */
@@ -348,6 +387,13 @@
 </head>
 <body>
 
+  <!-- Sync Lock Barrier Overlay -->
+  <div class="sync-overlay" id="sync-loading-overlay">
+    <div class="sync-spinner"></div>
+    <div style="font-weight: 800; font-size: 15px;" id="sync-overlay-text">⏳ 正在同步 Google Sheet 云端...</div>
+    <div style="font-size: 11px; opacity: 0.8; margin-top: 4px;">确保同步成功后解锁输入</div>
+  </div>
+
   <div class="app-container">
     
     <!-- Top Header -->
@@ -411,7 +457,7 @@
 
         <!-- Quick Action Buttons -->
         <div class="btn-grid">
-          <button class="btn-primary-action" onclick="openModal('modal-feeding')">🥣 记录今日投喂</button>
+          <button class="btn-primary-action" onclick="openNewFeedingModal()">🥣 记录今日投喂</button>
           <button class="btn-secondary-action" onclick="openModal('modal-weight')">⚖️ 记录新体重</button>
         </div>
 
@@ -431,7 +477,7 @@
       <div id="tab-feeding" style="display: none;">
         <div class="card-header">
           <div class="card-title">所有投喂历史</div>
-          <button class="btn-action" onclick="openModal('modal-feeding')">+ 添加投喂</button>
+          <button class="btn-action" onclick="openNewFeedingModal()">+ 添加投喂</button>
         </div>
         <div id="all-feeding-list">
           <!-- Dynamic JS Injected -->
@@ -612,10 +658,10 @@
     </div>
   </div>
 
-  <!-- MODAL 2: FEEDING -->
+  <!-- MODAL 2: FEEDING (Supports BOTH Adding & Direct Editing) -->
   <div class="modal-overlay" id="modal-feeding">
     <div class="modal-card">
-      <div class="modal-title">🥣 记录饮食投喂</div>
+      <div class="modal-title" id="modal-feeding-title">🥣 记录饮食投喂</div>
       <form onsubmit="handleSaveFeeding(event)">
         
         <div class="form-group">
@@ -680,7 +726,7 @@
 
         <div class="modal-btns">
           <button type="button" class="btn-cancel" onclick="closeModal('modal-feeding')">取消</button>
-          <button type="submit" class="btn-submit">录入投喂数据</button>
+          <button type="submit" class="btn-submit" id="btn-feeding-submit">录入投喂数据</button>
         </div>
       </form>
     </div>
@@ -783,10 +829,21 @@
       feedings: JSON.parse(localStorage.getItem('cat_feedings_v6')) || [],
       calorieGranularity: 'day',
       weightGranularity: 'day',
-      weightUnit: 'kg', // 'kg' or 'lbs'
+      weightUnit: 'kg',
       cloudUrl: localStorage.getItem('cat_cloud_url') || '',
       cloudKey: localStorage.getItem('cat_cloud_key') || 'MyCatDiet2026!'
     };
+
+    let editingFeedingId = null;
+
+    // Sync Overlay Controller
+    function showSyncOverlay(text) {
+      document.getElementById('sync-overlay-text').innerText = text || '⏳ 正在同步 Google Sheet 云端...';
+      document.getElementById('sync-loading-overlay').classList.add('active');
+    }
+    function hideSyncOverlay() {
+      document.getElementById('sync-loading-overlay').classList.remove('active');
+    }
 
     // Helper: Calculate Mean & Standard Deviation
     function calculateStats(numbers) {
@@ -983,18 +1040,25 @@
       }
     }
 
+    // Strict Blocking Push to Cloud (Returns response & handles status confirmation)
     async function pushToCloud(actionPayload) {
-      if (!state.cloudUrl) return;
+      if (!state.cloudUrl) return { status: 'offline' };
+      actionPayload.key = state.cloudKey;
+
       try {
-        actionPayload.key = state.cloudKey;
-        await fetch(state.cloudUrl, {
+        const res = await fetch(state.cloudUrl, {
           method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(actionPayload)
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(actionPayload),
+          redirect: 'follow'
         });
+        const text = await res.text();
+        let json;
+        try { json = JSON.parse(text); } catch(e) {}
+        return json || { status: "success" };
       } catch (err) {
-        console.warn('Push to cloud error:', err);
+        console.error('Push to cloud error:', err);
+        return { error: err.toString() };
       }
     }
 
@@ -1047,7 +1111,6 @@
       return recommendedGrams;
     }
 
-    // Recommendation text helper
     function updateFeedingRecommendation() {
       const foodId = document.getElementById('inp-feed-food').value;
       const recGrams = getRecommendedFeedingGrams(foodId);
@@ -1061,7 +1124,6 @@
       }
     }
 
-    // Requirement 2: Auto-update prev_fed_grams matching the SELECTED food's latest feeding record
     function updatePrevFedGramsForSelectedFood() {
       const foodId = parseInt(document.getElementById('inp-feed-food').value);
       if (!foodId) return;
@@ -1181,6 +1243,7 @@
             </div>
             <div style="display:flex; align-items:center;">
               <div class="item-val">${f.calories_intake} kcal</div>
+              <button class="btn-edit" onclick="openEditFeedingModal(${f.id})">✏️ 编辑</button>
               <button class="btn-delete" onclick="deleteFeeding(${f.id})">✕</button>
             </div>
           </div>
@@ -1201,6 +1264,7 @@
             </div>
             <div style="display:flex; align-items:center;">
               <div class="item-val">${f.calories_intake} kcal</div>
+              <button class="btn-edit" onclick="openEditFeedingModal(${f.id})">✏️ 编辑</button>
               <button class="btn-delete" onclick="deleteFeeding(${f.id})">✕</button>
             </div>
           </div>
@@ -1225,7 +1289,9 @@
       if (isDry) {
         dryBox.style.display = 'block';
         otherBox.style.display = 'none';
-        updatePrevFedGramsForSelectedFood();
+        if (!editingFeedingId) {
+          updatePrevFedGramsForSelectedFood();
+        }
         calculateEatenGrams();
       } else {
         dryBox.style.display = 'none';
@@ -1481,7 +1547,46 @@
       if (btn) btn.classList.add('active');
     }
 
-    // --- Modals ---
+    // --- Modal Controls ---
+    function openNewFeedingModal() {
+      editingFeedingId = null;
+      document.getElementById('modal-feeding-title').innerText = '🥣 记录饮食投喂';
+      document.getElementById('btn-feeding-submit').innerText = '录入投喂数据';
+
+      openModal('modal-feeding');
+      document.getElementById('inp-feed-time').value = getNowLocalIsoStr();
+      document.getElementById('inp-feed-leftover-grams').value = 0;
+      document.getElementById('inp-feed-curr-fed').value = 40;
+      document.getElementById('inp-feed-direct-eaten').value = '';
+      toggleFeedingInputMode();
+    }
+
+    function openEditFeedingModal(id) {
+      const feeding = state.feedings.find(f => f.id === id);
+      if (!feeding) return;
+
+      editingFeedingId = id;
+      document.getElementById('modal-feeding-title').innerText = '✏️ 修改投喂记录';
+      document.getElementById('btn-feeding-submit').innerText = '保存修改';
+
+      openModal('modal-feeding');
+
+      // Populate Modal Fields
+      document.getElementById('inp-feed-food').value = feeding.food_id;
+      document.getElementById('inp-feed-prev-fed').value = feeding.prev_fed_grams;
+      document.getElementById('inp-feed-leftover-grams').value = feeding.leftover_grams;
+      document.getElementById('inp-feed-curr-fed').value = feeding.curr_fed_grams;
+      document.getElementById('inp-feed-direct-eaten').value = feeding.eaten_grams;
+
+      if (feeding.time_str) {
+        document.getElementById('inp-feed-time').value = feeding.time_str.replace(' ', 'T');
+      } else {
+        document.getElementById('inp-feed-time').value = getNowLocalIsoStr();
+      }
+
+      toggleFeedingInputMode();
+    }
+
     function openModal(id) {
       document.getElementById(id).classList.add('active');
       if (id === 'modal-cloud') {
@@ -1492,38 +1597,67 @@
         document.getElementById('inp-weight-date').value = getTodayStr();
         convertLbsToKgHint();
       }
-      if (id === 'modal-feeding') {
-        document.getElementById('inp-feed-time').value = getNowLocalIsoStr();
-        document.getElementById('inp-feed-leftover-grams').value = 0;
-        document.getElementById('inp-feed-curr-fed').value = 40;
-        document.getElementById('inp-feed-direct-eaten').value = '';
-        toggleFeedingInputMode();
-      }
       if (id === 'modal-cat') {
         document.getElementById('inp-cat-name').value = state.cat.name;
         document.getElementById('inp-cat-goal').value = state.cat.activity_goal;
       }
     }
-    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+    function closeModal(id) { 
+      document.getElementById(id).classList.remove('active'); 
+      if (id === 'modal-feeding') {
+        editingFeedingId = null;
+      }
+    }
 
-    // --- Delete Items ---
-    function deleteFeeding(id) {
+    // --- Handlers & Synchronous Operations (Strict Barrier Confirmation) ---
+    async function deleteFeeding(id) {
+      if (!confirm('确定要删除这条投喂记录吗？')) return;
+      showSyncOverlay('⏳ 正在云端同步删除...');
+
       state.feedings = state.feedings.filter(f => f.id !== id);
       saveState();
-      pushToCloud({ action: 'deleteItem', sheetName: 'Feedings', id: id });
-    }
-    function deleteWeight(id) {
-      state.weights = state.weights.filter(w => w.id !== id);
-      saveState();
-      pushToCloud({ action: 'deleteItem', sheetName: 'Weights', id: id });
-    }
-    function deleteFood(id) {
-      state.foods = state.foods.filter(f => f.id !== id);
-      saveState();
-      pushToCloud({ action: 'deleteItem', sheetName: 'Foods', id: id });
+
+      const res = await pushToCloud({ action: 'deleteItem', sheetName: 'Feedings', id: id });
+      if (res && res.error) {
+        alert('⚠️ 云端同步失败: ' + res.error);
+      } else {
+        await syncFromCloud();
+      }
+      hideSyncOverlay();
     }
 
-    // --- Form Handlers ---
+    async function deleteWeight(id) {
+      if (!confirm('确定要删除这条体重记录吗？')) return;
+      showSyncOverlay('⏳ 正在云端同步删除...');
+
+      state.weights = state.weights.filter(w => w.id !== id);
+      saveState();
+
+      const res = await pushToCloud({ action: 'deleteItem', sheetName: 'Weights', id: id });
+      if (res && res.error) {
+        alert('⚠️ 云端同步失败: ' + res.error);
+      } else {
+        await syncFromCloud();
+      }
+      hideSyncOverlay();
+    }
+
+    async function deleteFood(id) {
+      if (!confirm('确定要删除这款猫粮数据吗？')) return;
+      showSyncOverlay('⏳ 正在云端同步删除...');
+
+      state.foods = state.foods.filter(f => f.id !== id);
+      saveState();
+
+      const res = await pushToCloud({ action: 'deleteItem', sheetName: 'Foods', id: id });
+      if (res && res.error) {
+        alert('⚠️ 云端同步失败: ' + res.error);
+      } else {
+        await syncFromCloud();
+      }
+      hideSyncOverlay();
+    }
+
     function handleSaveCloudConfig(e) {
       e.preventDefault();
       state.cloudUrl = document.getElementById('inp-cloud-url').value.trim();
@@ -1534,12 +1668,14 @@
       syncFromCloud();
     }
 
-    function handleSaveWeight(e) {
+    async function handleSaveWeight(e) {
       e.preventDefault();
       const lbs = parseFloat(document.getElementById('inp-weight-lbs').value);
       const bcs = parseInt(document.getElementById('inp-weight-bcs').value);
       const dt = document.getElementById('inp-weight-date').value || getTodayStr();
       if (!lbs) return;
+
+      showSyncOverlay('⏳ 正在云端同步体重...');
 
       const kg = Math.round(lbs * 0.45359237 * 100) / 100;
       const roundedLbs = Math.round(lbs * 100) / 100;
@@ -1555,7 +1691,7 @@
       closeModal('modal-weight');
       saveState();
 
-      pushToCloud({
+      const res = await pushToCloud({
         action: 'saveWeight',
         id: newWeight.id,
         weight_lbs: newWeight.weight_lbs,
@@ -1563,15 +1699,24 @@
         bcs_score: newWeight.bcs_score,
         logged_at: newWeight.logged_at
       });
+
+      if (res && res.error) {
+        alert('⚠️ 云端同步失败: ' + res.error);
+      } else {
+        await syncFromCloud();
+      }
+      hideSyncOverlay();
     }
 
-    function handleSaveFeeding(e) {
+    async function handleSaveFeeding(e) {
       e.preventDefault();
       const foodId = parseInt(document.getElementById('inp-feed-food').value);
       const timeVal = document.getElementById('inp-feed-time').value;
 
       const food = state.foods.find(f => f.id === foodId);
       if (!food) { alert('请先在猫粮库中添加猫粮！'); return; }
+
+      showSyncOverlay(editingFeedingId ? '⏳ 正在更新保存投喂数据...' : '⏳ 正在云端同步新投喂...');
 
       const isDry = food.food_type === 'dry';
       let prevFed = 0;
@@ -1595,9 +1740,12 @@
       const dateStr = timeVal ? normalizeDateStr(timeVal.slice(0, 10)) : getTodayStr();
       const timeStr = timeVal ? formatTimeDisplay(timeVal) : formatTimeDisplay(getNowLocalIsoStr());
 
-      const newFeeding = {
-        id: Date.now(),
+      const targetId = editingFeedingId ? editingFeedingId : Date.now();
+
+      const feedingObj = {
+        id: targetId,
         food_id: foodId,
+        food_name: food.name,
         date: dateStr,
         time_str: timeStr,
         prev_fed_grams: prevFed,
@@ -1607,25 +1755,47 @@
         calories_intake: kcal
       };
 
-      state.feedings.unshift(newFeeding);
+      if (editingFeedingId) {
+        const idx = state.feedings.findIndex(f => f.id === editingFeedingId);
+        if (idx !== -1) {
+          state.feedings[idx] = feedingObj;
+        } else {
+          state.feedings.unshift(feedingObj);
+        }
+      } else {
+        state.feedings.unshift(feedingObj);
+      }
+
       closeModal('modal-feeding');
       saveState();
 
-      pushToCloud({
-        action: 'saveFeeding',
-        id: newFeeding.id,
-        food_id: newFeeding.food_id,
-        date: newFeeding.date,
-        time_str: newFeeding.time_str,
-        prev_fed_grams: newFeeding.prev_fed_grams,
-        leftover_grams: newFeeding.leftover_grams,
-        eaten_grams: newFeeding.eaten_grams,
-        curr_fed_grams: newFeeding.curr_fed_grams,
-        calories_intake: newFeeding.calories_intake
+      const actionType = editingFeedingId ? 'updateFeeding' : 'saveFeeding';
+
+      const res = await pushToCloud({
+        action: actionType,
+        id: feedingObj.id,
+        food_id: feedingObj.food_id,
+        food_name: feedingObj.food_name,
+        date: feedingObj.date,
+        time_str: feedingObj.time_str,
+        prev_fed_grams: feedingObj.prev_fed_grams,
+        leftover_grams: feedingObj.leftover_grams,
+        eaten_grams: feedingObj.eaten_grams,
+        curr_fed_grams: feedingObj.curr_fed_grams,
+        calories_intake: feedingObj.calories_intake
       });
+
+      if (res && res.error) {
+        alert('⚠️ 云端同步失败: ' + res.error);
+      } else {
+        await syncFromCloud();
+      }
+
+      editingFeedingId = null;
+      hideSyncOverlay();
     }
 
-    function handleSaveFood(e) {
+    async function handleSaveFood(e) {
       e.preventDefault();
       const name = document.getElementById('inp-food-name').value;
       const brand = document.getElementById('inp-food-brand').value || '自选牌子';
@@ -1634,6 +1804,8 @@
       const notes = document.getElementById('inp-food-notes').value || '';
 
       if (!name || !kcal) return;
+
+      showSyncOverlay('⏳ 正在云端同步猫粮库...');
 
       const newFood = {
         id: Date.now(),
@@ -1648,7 +1820,7 @@
       closeModal('modal-food');
       saveState();
 
-      pushToCloud({
+      const res = await pushToCloud({
         action: 'saveFood',
         id: newFood.id,
         name: newFood.name,
@@ -1657,21 +1829,37 @@
         calories_per_kg: newFood.calories_per_kg,
         notes: newFood.notes
       });
+
+      if (res && res.error) {
+        alert('⚠️ 云端同步失败: ' + res.error);
+      } else {
+        await syncFromCloud();
+      }
+      hideSyncOverlay();
     }
 
-    function handleSaveCat(e) {
+    async function handleSaveCat(e) {
       e.preventDefault();
+      showSyncOverlay('⏳ 正在云端同步档案...');
+
       state.cat.name = document.getElementById('inp-cat-name').value || state.cat.name;
       state.cat.activity_goal = document.getElementById('inp-cat-goal').value;
       closeModal('modal-cat');
       saveState();
 
-      pushToCloud({
+      const res = await pushToCloud({
         action: 'saveCat',
         name: state.cat.name,
         activity_goal: state.cat.activity_goal,
         is_neutered: state.cat.is_neutered
       });
+
+      if (res && res.error) {
+        alert('⚠️ 云端同步失败: ' + res.error);
+      } else {
+        await syncFromCloud();
+      }
+      hideSyncOverlay();
     }
 
     // Initial Launch & Cloud Sync
